@@ -1,0 +1,54 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Xcode / Swift
+.build/
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+!default.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+.swiftpm/
+**/Packages/
+*.playground
+Package.resolved
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.npm
+npm-debug.log*
+yarn-error.log*
+.pnpm-store/
+*.tsbuildinfo
+next-env.d.ts
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+GoogleService-Info.plist
+serviceAccount*.json
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~

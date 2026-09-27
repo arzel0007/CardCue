@@ -1,0 +1,264 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   CardCue design tokens — mirrors design/tokens/tokens.json
+   Premium, calm, Apple-inspired. Hairline borders over shadows.
+--------------------------------------------------------------------------- */
+
+:root {
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface-muted: #efece8;
+  --ink: #1a1a1a;
+  --ink-secondary: #6b6b6b;
+  --ink-tertiary: #9a9a9a;
+  --divider: #e4e0db;
+  --accent: #0e6b63;
+  --accent-soft: #e2f0ee;
+  --status-neutral: #6b7280;
+  --status-upcoming: #2563eb;
+  --status-attention: #b45309;
+  --status-threshold: #c2410c;
+  --status-complete: #047857;
+  --status-critical: #b91c1c;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-sheet: 0 8px 24px rgba(0, 0, 0, 0.08);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1114;
+    --surface: #1a1d22;
+    --surface-muted: #24282e;
+    --ink: #f5f5f7;
+    --ink-secondary: #98989d;
+    --ink-tertiary: #6e6e73;
+    --divider: #2c3036;
+    --accent: #3aa398;
+    --accent-soft: #1a3331;
+    --status-neutral: #9ca3af;
+    --status-upcoming: #60a5fa;
+    --status-attention: #f59e0b;
+    --status-threshold: #fb923c;
+    --status-complete: #34d399;
+    --status-critical: #f87171;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-tertiary: var(--ink-tertiary);
+  --color-divider: var(--divider);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-upcoming: var(--status-upcoming);
+  --color-status-attention: var(--status-attention);
+  --color-status-threshold: var(--status-threshold);
+  --color-status-complete: var(--status-complete);
+  --color-status-critical: var(--status-critical);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+* {
+  border-color: var(--divider);
+}
+
+html {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Large financial values use tabular numerals */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Quiet caption style from the design system */
+.caption {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-secondary);
+}
+
+/* Focus ring — accessible, accent-colored */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Progress track/fill */
+.progress-track {
+  background: var(--surface-muted);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 280ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill,
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Hairline card surface */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+}
+
+/* Form controls */
+.field {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  transition: border-color 150ms ease;
+}
+
+.field:hover {
+  border-color: var(--ink-tertiary);
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.field::placeholder {
+  color: var(--ink-tertiary);
+}
+
+select.field {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B6B6B' d='M6 8.5 2 4.5h8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* ---------------------------------------------------------------------------
+   Spend-window calendar states
+   Three clear colors the user can read without decoding the legend:
+   green = OK to spend · amber = limit risk · hatch = outside cycle
+--------------------------------------------------------------------------- */
+
+.spend-ok {
+  border-color: #2e7d32 !important;
+  background-color: #e8f5e9;
+  color: #1b5e20;
+  background-image: none;
+}
+
+.spend-near-limit {
+  border-color: #b45309 !important;
+  background-color: #fff7ed;
+  color: #9a3412;
+  background-image: none;
+}
+
+.spend-limit-reached {
+  border-color: #c2410c !important;
+  background-color: #ffedd5;
+  color: #9a3412;
+  background-image: none;
+}
+
+.spend-outside {
+  border-color: var(--divider) !important;
+  background-color: var(--surface);
+  color: var(--ink-tertiary);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 5px,
+    var(--divider) 5px,
+    var(--divider) 6px
+  );
+}
+
+@media (prefers-color-scheme: dark) {
+  .spend-ok {
+    background-color: #1b3d22;
+    color: #a5d6a7;
+    border-color: #2e7d32 !important;
+  }
+
+  .spend-near-limit {
+    background-color: #3d2a12;
+    color: #fdba74;
+    border-color: #b45309 !important;
+  }
+
+  .spend-limit-reached {
+    background-color: #431407;
+    color: #fdba74;
+    border-color: #c2410c !important;
+  }
+}
+
+.spend-banner-ok {
+  background: #e8f5e9;
+  border-color: #2e7d32;
+}
+
+.spend-banner-risk {
+  background: #fff7ed;
+  border-color: #b45309;
+}
+
+.spend-banner-outside {
+  background: var(--surface-muted);
+  border-color: var(--divider);
+}
+
+@media (prefers-color-scheme: dark) {
+  .spend-banner-ok {
+    background: #1b3d22;
+    border-color: #2e7d32;
+  }
+
+  .spend-banner-risk {
+    background: #3d2a12;
+    border-color: #b45309;
+  }
+}
