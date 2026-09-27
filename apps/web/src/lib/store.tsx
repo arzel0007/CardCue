@@ -59,6 +59,17 @@ function makeId(prefix: string): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function resolveDisplayName(
+  user: Pick<User, "email" | "displayName" | "preferences">
+): string {
+  const fromField = user.displayName?.trim();
+  if (fromField) return fromField;
+  const fromPrefs = user.preferences?.displayName;
+  if (typeof fromPrefs === "string" && fromPrefs.trim()) return fromPrefs.trim();
+  const local = user.email.split("@")[0] || "there";
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
 function emptyUser(email = ""): User {
   const now = new Date().toISOString();
   return {
@@ -75,13 +86,31 @@ function emptyUser(email = ""): User {
   };
 }
 
+function firebaseErrorCode(err: unknown): string {
+  const e = err as { code?: string; message?: string };
+  return e?.code || e?.message || "unknown";
+}
+
+function hydrationErrorMessage(code: string): string {
+  if (code.includes("permission-denied")) {
+    return "We couldn’t read your saved data (permission denied). Make sure Cloud Firestore is enabled and security rules allow your account.";
+  }
+  if (code.includes("unavailable") || code.includes("failed-precondition")) {
+    return "We couldn’t reach the database. Check that Cloud Firestore is created in the Firebase project, then try again.";
+  }
+  if (code.includes("unauthenticated")) {
+    return "Your session expired. Please sign in again.";
+  }
+  return "We couldn’t load your data. Check your connection and try again.";
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(emptyUser());
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [notificationPreference, setNotificationPreference] =
     useState<NotificationPreference>(mockNotificationPreference);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [isDemoMode, setIsDemoMode] = useState(true);
@@ -140,36 +169,86 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
         try {
           setIsLoading(true);
-          let profile = await fetchUserProfile(uid);
+
+          let profile: User | null = null;
+          try {
+            profile = await fetchUserProfile(uid);
+          } catch (profileErr) {
+            console.warn("[CardCue] profile read failed, will retry create", profileErr);
+          }
+
+          const authName = fbUser.displayName?.trim() || undefined;
+
           if (!profile) {
             profile = {
               id: uid,
               email: fbUser.email ?? "",
+              displayName: authName,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               preferredCurrency: "PHP",
               timezone:
                 Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila",
-              preferences: {},
+              preferences: authName ? { displayName: authName } : {},
             };
-            await upsertUserProfile(uid, profile);
+            try {
+              await upsertUserProfile(uid, profile);
+            } catch (writeErr) {
+              console.warn("[CardCue] profile create failed", writeErr);
+            }
           }
           if (cancelled) return;
-          setUser(profile);
 
-          const [cardList, txnList, prefs] = await Promise.all([
+          const displayName =
+            profile.displayName ||
+            authName ||
+            resolveDisplayName(profile);
+
+          setUser({
+            ...profile,
+            id: uid,
+            email: fbUser.email || profile.email,
+            displayName,
+            preferences: {
+              ...(profile.preferences ?? {}),
+              displayName,
+            },
+          });
+
+          // Load collections independently so one failure doesn't block the app.
+          const [cardResult, txnResult, prefsResult] = await Promise.allSettled([
             fetchCards(uid),
             fetchTransactions(uid),
             fetchNotificationPreference(uid),
           ]);
           if (cancelled) return;
-          setCards(cardList);
-          setTransactions(txnList);
-          if (prefs) setNotificationPreference(prefs);
+
+          if (cardResult.status === "fulfilled") {
+            setCards(cardResult.value);
+          } else {
+            console.warn("[CardCue] cards load failed", cardResult.reason);
+          }
+          if (txnResult.status === "fulfilled") {
+            setTransactions(txnResult.value);
+          } else {
+            console.warn("[CardCue] transactions load failed", txnResult.reason);
+          }
+          if (prefsResult.status === "fulfilled" && prefsResult.value) {
+            setNotificationPreference(prefsResult.value);
+          }
+
           hydratedUid.current = uid;
+
+          // Only surface a user-facing error if nothing loaded.
+          if (cardResult.status === "rejected" && txnResult.status === "rejected") {
+            const code = firebaseErrorCode(cardResult.reason);
+            setError(hydrationErrorMessage(code));
+          } else {
+            setError(null);
+          }
         } catch (e) {
           console.error("[CardCue] Failed to load user data", e);
-          setError("We couldn’t load your data. Check your connection and try again.");
+          setError(hydrationErrorMessage(firebaseErrorCode(e)));
         } finally {
           if (!cancelled) {
             setIsAuthReady(true);
@@ -222,16 +301,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (auth) {
         const { signUpEmailPassword, upsertUserProfile } = await import("./firebase-data");
         const cred = await signUpEmailPassword(email, password);
+        const nameTrimmed = name.trim();
+        // Store name on Auth profile too so hydration never loses it.
+        try {
+          const { updateProfile } = await import("firebase/auth");
+          await updateProfile(cred.user, { displayName: nameTrimmed });
+        } catch (e) {
+          console.warn("[CardCue] Auth displayName update failed", e);
+        }
         const now = new Date().toISOString();
-        await upsertUserProfile(cred.user.uid, {
+        const profile: User = {
           id: cred.user.uid,
           email,
+          displayName: nameTrimmed,
           createdAt: now,
           updatedAt: now,
           preferredCurrency: "PHP",
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila",
-          preferences: { displayName: name.trim() },
-        });
+          preferences: { displayName: nameTrimmed },
+        };
+        await upsertUserProfile(cred.user.uid, profile);
+        setUser(profile);
         return;
       }
       await new Promise((r) => setTimeout(r, 450));
@@ -242,11 +332,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setUser((prev) => ({
         ...prev,
         email,
+        displayName: name.trim(),
         updatedAt: new Date().toISOString(),
         preferences: { ...prev.preferences, displayName: name.trim() },
       }));
       setCards(mockCards);
       setTransactions(mockTransactions);
+      return;
     },
     []
   );
@@ -443,4 +535,9 @@ export function newCardId(): string {
 
 export function newTransactionId(): string {
   return makeId("txn");
+}
+
+/** Shared helper so UI never greets with a raw email local-part when a name exists. */
+export function displayNameForUser(user: User): string {
+  return resolveDisplayName(user);
 }

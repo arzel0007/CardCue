@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useStore } from "@/lib/store";
+import { useStore, displayNameForUser } from "@/lib/store";
 import { todayInTimezone } from "@/lib/billingCycle";
 import {
   buildCardCycleView,
@@ -75,9 +75,12 @@ export default function DashboardPage() {
     return days;
   }, [mounted, transactions, user.timezone]);
 
-  if (!mounted || isLoading) {
+  // Only block on first paint / active fetch when we have nothing to show yet.
+  const showInitialLoading = !mounted || (isLoading && cards.length === 0);
+
+  if (showInitialLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         <PageHeader />
         <LoadingState label="Loading your cards…" />
       </div>
@@ -219,7 +222,7 @@ function PageHeader() {
     <header>
       <p className="caption text-ink-secondary">{greeting}</p>
       <h1 className="mt-1 text-[32px] font-semibold leading-tight tracking-tight text-ink">
-        {user.email.split("@")[0]}
+        {displayNameForUser(user)}
       </h1>
       <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-secondary">
         Here’s where your cards stand this cycle.

@@ -29,8 +29,48 @@
   color-scheme: light;
 }
 
+/* Explicit theme overrides (Settings → Appearance) */
+:root[data-theme="dark"] {
+  --bg: #0f1114;
+  --surface: #1a1d22;
+  --surface-muted: #24282e;
+  --ink: #f5f5f7;
+  --ink-secondary: #98989d;
+  --ink-tertiary: #6e6e73;
+  --divider: #2c3036;
+  --accent: #3aa398;
+  --accent-soft: #1a3331;
+  --status-neutral: #9ca3af;
+  --status-upcoming: #60a5fa;
+  --status-attention: #f59e0b;
+  --status-threshold: #fb923c;
+  --status-complete: #34d399;
+  --status-critical: #f87171;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --surface-muted: #efece8;
+  --ink: #1a1a1a;
+  --ink-secondary: #6b6b6b;
+  --ink-tertiary: #9a9a9a;
+  --divider: #e4e0db;
+  --accent: #0e6b63;
+  --accent-soft: #e2f0ee;
+  --status-neutral: #6b7280;
+  --status-upcoming: #2563eb;
+  --status-attention: #b45309;
+  --status-threshold: #c2410c;
+  --status-complete: #047857;
+  --status-critical: #b91c1c;
+  color-scheme: light;
+}
+
+/* System preference only when theme is auto (no data-theme, or data-theme="auto") */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     --bg: #0f1114;
     --surface: #1a1d22;
     --surface-muted: #24282e;
@@ -82,14 +122,32 @@ html {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
+  /* Kill iOS horizontal overscroll from wide children */
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
+  overflow-x: hidden;
+  max-width: 100%;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Prevent fixed/sticky chrome from creating layout overflow */
+* {
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Large financial values use tabular numerals */
@@ -134,11 +192,24 @@ body {
   }
 }
 
+@keyframes cardcue-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 /* Hairline card surface */
 .surface {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: var(--surface);
   border: 1px solid var(--divider);
   border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 /* Form controls */

@@ -10,6 +10,8 @@ export type UUID = string;
 export interface User {
   id: UUID;
   email: string;
+  /** Preferred display name from sign-up (not the email local-part). */
+  displayName?: string;
   createdAt: ISODateTimeString;
   updatedAt: ISODateTimeString;
   /** ISO 4217, default "PHP" */

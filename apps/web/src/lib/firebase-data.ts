@@ -18,8 +18,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  orderBy,
-  query,
   setDoc,
   Timestamp,
 } from "firebase/firestore";
@@ -32,6 +30,22 @@ function db() {
     throw new Error("Firebase is not configured. Set NEXT_PUBLIC_FIREBASE_* in apps/web/.env.local");
   }
   return database;
+}
+
+/** Fail fast on flaky mobile networks instead of spinning forever. */
+async function withTimeout<T>(promise: Promise<T>, ms = 6000, label = "request"): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      const t = setTimeout(() => {
+        reject(new Error(`firebase/${label}-timeout after ${ms}ms`));
+      }, ms);
+      // Avoid unhandled timer leak in tests
+      if (typeof (t as unknown as { unref?: () => void }).unref === "function") {
+        (t as unknown as { unref: () => void }).unref();
+      }
+    }),
+  ]);
 }
 
 function userDoc(uid: string) {
@@ -55,16 +69,43 @@ function prefsCol(uid: string) {
 // ---------------------------------------------------------------------------
 
 export async function fetchUserProfile(uid: string): Promise<User | null> {
-  const snap = await getDoc(userDoc(uid));
+  const snap = await withTimeout(getDoc(userDoc(uid)), 6000, "profile");
   if (!snap.exists()) return null;
-  return snap.data() as User;
+  const data = snap.data() as Partial<User>;
+  const prefs = (data.preferences ?? {}) as Record<string, unknown>;
+  const prefName = typeof prefs.displayName === "string" ? prefs.displayName : undefined;
+  return {
+    ...data,
+    id: uid,
+    email: data.email ?? "",
+    displayName: data.displayName || prefName,
+    preferredCurrency: data.preferredCurrency ?? "PHP",
+    timezone: data.timezone ?? "Asia/Manila",
+    preferences: prefs,
+    createdAt: data.createdAt ?? new Date().toISOString(),
+    updatedAt: data.updatedAt ?? new Date().toISOString(),
+  };
 }
 
 export async function upsertUserProfile(uid: string, user: User): Promise<void> {
+  const displayName =
+    user.displayName ||
+    (typeof user.preferences?.displayName === "string"
+      ? (user.preferences.displayName as string)
+      : undefined);
+
   await setDoc(
     userDoc(uid),
     {
-      ...user,
+      email: user.email,
+      displayName: displayName ?? null,
+      preferredCurrency: user.preferredCurrency,
+      timezone: user.timezone,
+      preferences: {
+        ...(user.preferences ?? {}),
+        ...(displayName ? { displayName } : {}),
+      },
+      createdAt: user.createdAt,
       updatedAt: new Date().toISOString(),
     },
     { merge: true }
@@ -76,10 +117,15 @@ export async function upsertUserProfile(uid: string, user: User): Promise<void> 
 // ---------------------------------------------------------------------------
 
 export async function fetchCards(uid: string): Promise<CreditCard[]> {
-  const snap = await getDocs(
-    query(cardsCol(uid), orderBy("updatedAt", "desc"))
+  // No orderBy — avoids index waits and faster empty reads on mobile.
+  const snap = await withTimeout(getDocs(cardsCol(uid)), 6000, "cards");
+  const list = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<CreditCard, "id">),
+  }));
+  return list.sort((a, b) =>
+    (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "")
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CreditCard, "id">) }));
 }
 
 export async function saveCard(uid: string, card: CreditCard): Promise<void> {
@@ -111,10 +157,14 @@ export async function archiveCard(uid: string, cardId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function fetchTransactions(uid: string): Promise<Transaction[]> {
-  const snap = await getDocs(
-    query(txnsCol(uid), orderBy("transactionDate", "desc"))
+  const snap = await withTimeout(getDocs(txnsCol(uid)), 6000, "transactions");
+  const list = snap.docs.map((d) => ({
+    id: d.id,
+    ...(d.data() as Omit<Transaction, "id">),
+  }));
+  return list.sort((a, b) =>
+    (b.transactionDate ?? "").localeCompare(a.transactionDate ?? "")
   );
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Transaction, "id">) }));
 }
 
 export async function saveTransaction(uid: string, txn: Transaction): Promise<void> {
@@ -143,7 +193,7 @@ export async function fetchNotificationPreference(
   cardId: string | null = null
 ): Promise<NotificationPreference | null> {
   const id = cardId ?? "global";
-  const snap = await getDoc(doc(prefsCol(uid), id));
+  const snap = await withTimeout(getDoc(doc(prefsCol(uid), id)), 6000, "prefs");
   if (!snap.exists()) return null;
   return { id: snap.id, ...(snap.data() as Omit<NotificationPreference, "id">) };
 }

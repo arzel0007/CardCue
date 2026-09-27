@@ -38,10 +38,11 @@ service cloud.firestore {
           && request.resource.data.lastFourDigits.matches('^[0-9]{4}$')
           && request.resource.data.creditLimit is number
           && request.resource.data.creditLimit >= 0
-          && request.resource.data.statementDay is int
+          // JS SDK writes numbers as doubles — use `number`, not `int`
+          && request.resource.data.statementDay is number
           && request.resource.data.statementDay >= 1
           && request.resource.data.statementDay <= 31
-          && request.resource.data.dueDay is int
+          && request.resource.data.dueDay is number
           && request.resource.data.dueDay >= 1
           && request.resource.data.dueDay <= 31
           && !request.resource.data.keys().hasAny(['pan', 'cardNumber', 'cvv', 'pin', 'password']);

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { StoreProvider } from "@/lib/store";
+import { ThemeInit } from "@/components/brand/theme-init";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -45,8 +46,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
-      <body className="min-h-full">
+    <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
+      <body className="min-h-full overflow-x-hidden">
+        <ThemeInit />
         <StoreProvider>
           <AppShell>{children}</AppShell>
         </StoreProvider>

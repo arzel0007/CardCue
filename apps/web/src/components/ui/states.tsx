@@ -15,7 +15,7 @@ export function EmptyState({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="surface flex flex-col items-center justify-center px-6 py-16 text-center">
+    <div className="surface flex w-full max-w-full flex-col items-center justify-center px-5 py-12 text-center sm:px-6 sm:py-16">
       <div
         aria-hidden="true"
         className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent"
@@ -28,8 +28,8 @@ export function EmptyState({
           </svg>
         )}
       </div>
-      <h3 className="text-[20px] font-semibold text-ink">{title}</h3>
-      <p className="mt-2 max-w-sm text-[15px] leading-relaxed text-ink-secondary">{body}</p>
+      <h3 className="text-[18px] font-semibold text-ink sm:text-[20px]">{title}</h3>
+      <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-ink-secondary sm:text-[15px]">{body}</p>
       {actionLabel && onAction ? (
         <Button className="mt-6" onClick={onAction}>
           {actionLabel}
