@@ -1,11 +1,25 @@
 "use client";
 
 /**
- * Client-side app store. Mock/local state stands in for Supabase until the
- * live backend is wired. All pages read/write through this provider.
+ * App store — source of truth for auth + user data.
+ *
+ * When Firebase is configured (NEXT_PUBLIC_FIREBASE_*):
+ *   - Session is Firebase Auth only (onAuthStateChanged)
+ *   - Profile / cards / transactions live in Firestore
+ *   - localStorage is never treated as identity
+ *
+ * Demo mode (no Firebase env): in-memory mock data for local UI work only.
  */
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { CreditCard, NotificationPreference, Transaction, User } from "./types";
 import {
   mockCards,
@@ -20,85 +34,210 @@ export interface AppStore {
   transactions: Transaction[];
   notificationPreference: NotificationPreference;
   isLoading: boolean;
-  /** Mock auth session — true after sign-in / sign-up. */
+  isAuthReady: boolean;
   isAuthenticated: boolean;
-  upsertCard: (card: CreditCard) => void;
-  archiveCard: (id: string) => void;
-  upsertTransaction: (txn: Transaction) => void;
-  deleteTransaction: (id: string) => void;
+  /** True when running without Firebase (local mock only). */
+  isDemoMode: boolean;
+  upsertCard: (card: CreditCard) => Promise<void>;
+  archiveCard: (id: string) => Promise<void>;
+  upsertTransaction: (txn: Transaction) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   updateNotificationPreference: (patch: Partial<NotificationPreference>) => void;
   updateUser: (patch: Partial<User>) => void;
-  /** Mock credentials — stands in for Supabase Auth. */
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
-  signOut: () => void;
-  /** Simulates a brief loading window for data screens. */
+  signOut: () => Promise<void>;
   refresh: () => void;
 }
 
 const StoreContext = createContext<AppStore | null>(null);
 
 function makeId(prefix: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function emptyUser(email = ""): User {
+  const now = new Date().toISOString();
+  return {
+    id: "",
+    email,
+    createdAt: now,
+    updatedAt: now,
+    preferredCurrency: "PHP",
+    timezone:
+      typeof Intl !== "undefined"
+        ? Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila"
+        : "Asia/Manila",
+    preferences: {},
+  };
+}
+
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User>(mockUser);
-  const [cards, setCards] = useState<CreditCard[]>(mockCards);
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [user, setUser] = useState<User>(emptyUser());
+  const [cards, setCards] = useState<CreditCard[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [notificationPreference, setNotificationPreference] =
     useState<NotificationPreference>(mockNotificationPreference);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const hydratedUid = useRef<string | null>(null);
 
-  // Restore mock session (stands in for Supabase Auth cookie/local session).
-  React.useEffect(() => {
-    try {
-      if (window.localStorage.getItem("cardcue.session") === "1") {
-        setIsAuthenticated(true);
+  // --- Auth lifecycle -------------------------------------------------------
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      const { getFirebaseConfig, getFirebaseAuth } = await import("./firebase");
+      const config = getFirebaseConfig();
+      const auth = getFirebaseAuth();
+
+      if (cancelled) return;
+
+      if (!config.isConfigured || !auth) {
+        // Demo mode: seed mock data so the UI is explorable without a backend.
+        setIsDemoMode(true);
+        setUser(mockUser);
+        setCards(mockCards);
+        setTransactions(mockTransactions);
+        setNotificationPreference(mockNotificationPreference);
+        setIsAuthenticated(false);
+        setIsAuthReady(true);
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      // ignore storage errors
+
+      setIsDemoMode(false);
+      const { onAuthStateChanged } = await import("firebase/auth");
+
+      const unsub = onAuthStateChanged(auth, async (fbUser) => {
+        if (cancelled) return;
+        if (!fbUser) {
+          hydratedUid.current = null;
+          setIsAuthenticated(false);
+          setUser(emptyUser());
+          setCards([]);
+          setTransactions([]);
+          setIsAuthReady(true);
+          setIsLoading(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+        const uid = fbUser.uid;
+        const {
+          fetchUserProfile,
+          upsertUserProfile,
+          fetchCards,
+          fetchTransactions,
+          fetchNotificationPreference,
+        } = await import("./firebase-data");
+
+        try {
+          setIsLoading(true);
+          let profile = await fetchUserProfile(uid);
+          if (!profile) {
+            profile = {
+              id: uid,
+              email: fbUser.email ?? "",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              preferredCurrency: "PHP",
+              timezone:
+                Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila",
+              preferences: {},
+            };
+            await upsertUserProfile(uid, profile);
+          }
+          if (cancelled) return;
+          setUser(profile);
+
+          const [cardList, txnList, prefs] = await Promise.all([
+            fetchCards(uid),
+            fetchTransactions(uid),
+            fetchNotificationPreference(uid),
+          ]);
+          if (cancelled) return;
+          setCards(cardList);
+          setTransactions(txnList);
+          if (prefs) setNotificationPreference(prefs);
+          hydratedUid.current = uid;
+        } catch (e) {
+          console.error("[CardCue] Failed to load user data", e);
+          setError("We couldn’t load your data. Check your connection and try again.");
+        } finally {
+          if (!cancelled) {
+            setIsAuthReady(true);
+            setIsLoading(false);
+          }
+        }
+      });
+
+      return () => unsub();
     }
+
+    const dispose = init();
+    return () => {
+      cancelled = true;
+      void dispose.then((u) => u?.());
+    };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    // Prefer real Firebase Auth when configured; otherwise mock session.
-    const { getFirebaseAuth } = await import("./firebase");
-    const { signInEmailPassword } = await import("./firebase-data");
-    if (getFirebaseAuth()) {
-      await signInEmailPassword(email, password);
+  const requireUid = useCallback((): string | null => {
+    return hydratedUid.current;
+  }, []);
+
+  // --- Auth actions ---------------------------------------------------------
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { getFirebaseAuth } = await import("./firebase");
+      const auth = getFirebaseAuth();
+      if (auth) {
+        const { signInEmailPassword } = await import("./firebase-data");
+        await signInEmailPassword(email, password);
+        return;
+      }
+      // Demo only
+      await new Promise((r) => setTimeout(r, 350));
+      if (!email.includes("@")) throw new Error("Enter a valid email address.");
+      if (password.length < 8) throw new Error("Password must be at least 8 characters.");
       setIsAuthenticated(true);
       setUser((prev) => ({ ...prev, email, updatedAt: new Date().toISOString() }));
-      return;
-    }
+      setCards(mockCards);
+      setTransactions(mockTransactions);
+    },
+    []
+  );
 
-    // Mock delay so the button can show pending state
-    await new Promise((r) => setTimeout(r, 450));
-    if (!email.includes("@")) {
-      throw new Error("Enter a valid email address.");
-    }
-    if (password.length < 8) {
-      throw new Error("Password must be at least 8 characters.");
-    }
-    setIsAuthenticated(true);
-    setUser((prev) => ({
-      ...prev,
-      email,
-      updatedAt: new Date().toISOString(),
-    }));
-    try {
-      window.localStorage.setItem("cardcue.session", "1");
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const signUp = useCallback(async (name: string, email: string, password: string) => {
-    const { getFirebaseAuth } = await import("./firebase");
-    const { signUpEmailPassword } = await import("./firebase-data");
-    if (getFirebaseAuth()) {
-      await signUpEmailPassword(email, password);
+  const signUp = useCallback(
+    async (name: string, email: string, password: string) => {
+      const { getFirebaseAuth } = await import("./firebase");
+      const auth = getFirebaseAuth();
+      if (auth) {
+        const { signUpEmailPassword, upsertUserProfile } = await import("./firebase-data");
+        const cred = await signUpEmailPassword(email, password);
+        const now = new Date().toISOString();
+        await upsertUserProfile(cred.user.uid, {
+          id: cred.user.uid,
+          email,
+          createdAt: now,
+          updatedAt: now,
+          preferredCurrency: "PHP",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Manila",
+          preferences: { displayName: name.trim() },
+        });
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 450));
+      if (!email.includes("@")) throw new Error("Enter a valid email address.");
+      if (name.trim().length < 2) throw new Error("Enter your name.");
+      if (password.length < 8) throw new Error("Password must be at least 8 characters.");
       setIsAuthenticated(true);
       setUser((prev) => ({
         ...prev,
@@ -106,100 +245,127 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         updatedAt: new Date().toISOString(),
         preferences: { ...prev.preferences, displayName: name.trim() },
       }));
-      return;
-    }
+      setCards(mockCards);
+      setTransactions(mockTransactions);
+    },
+    []
+  );
 
-    await new Promise((r) => setTimeout(r, 550));
-    if (!email.includes("@")) {
-      throw new Error("Enter a valid email address.");
+  const signOut = useCallback(async () => {
+    const { getFirebaseAuth } = await import("./firebase");
+    const { signOutFirebase } = await import("./firebase-data");
+    if (getFirebaseAuth()) {
+      await signOutFirebase();
     }
-    if (name.trim().length < 2) {
-      throw new Error("Enter your name.");
-    }
-    if (password.length < 8) {
-      throw new Error("Password must be at least 8 characters.");
-    }
-    setIsAuthenticated(true);
-    setUser((prev) => ({
-      ...prev,
-      email,
-      updatedAt: new Date().toISOString(),
-      preferences: { ...prev.preferences, displayName: name.trim() },
-    }));
-    try {
-      window.localStorage.setItem("cardcue.session", "1");
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const signOut = useCallback(() => {
-    void (async () => {
-      try {
-        const { getFirebaseAuth } = await import("./firebase");
-        const { signOutFirebase } = await import("./firebase-data");
-        if (getFirebaseAuth()) await signOutFirebase();
-      } catch {
-        // ignore
-      }
-    })();
+    hydratedUid.current = null;
     setIsAuthenticated(false);
-    try {
-      window.localStorage.removeItem("cardcue.session");
-    } catch {
-      // ignore
+    if (!getFirebaseAuth()) {
+      setCards([]);
+      setTransactions([]);
     }
   }, []);
 
-  const upsertCard = useCallback((card: CreditCard) => {
-    setCards((prev) => {
-      const idx = prev.findIndex((c) => c.id === card.id);
+  // --- Data mutations -------------------------------------------------------
+
+  const upsertCard = useCallback(
+    async (card: CreditCard) => {
       const stamped = { ...card, updatedAt: new Date().toISOString() };
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = stamped;
-        return next;
+      setCards((prev) => {
+        const idx = prev.findIndex((c) => c.id === card.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = stamped;
+          return next;
+        }
+        return [...prev, stamped];
+      });
+      const uid = requireUid();
+      if (uid) {
+        const { saveCard } = await import("./firebase-data");
+        await saveCard(uid, stamped);
       }
-      return [...prev, stamped];
-    });
-  }, []);
+    },
+    [requireUid]
+  );
 
-  const archiveCard = useCallback((id: string) => {
-    setCards((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? { ...c, isArchived: true, updatedAt: new Date().toISOString() }
-          : c
-      )
-    );
-  }, []);
+  const archiveCard = useCallback(
+    async (id: string) => {
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, isArchived: true, updatedAt: new Date().toISOString() } : c
+        )
+      );
+      const uid = requireUid();
+      if (uid) {
+        const { archiveCard: archiveRemote } = await import("./firebase-data");
+        await archiveRemote(uid, id);
+      }
+    },
+    [requireUid]
+  );
 
-  const upsertTransaction = useCallback((txn: Transaction) => {
-    setTransactions((prev) => {
-      const idx = prev.findIndex((t) => t.id === txn.id);
+  const upsertTransaction = useCallback(
+    async (txn: Transaction) => {
       const stamped = { ...txn, updatedAt: new Date().toISOString() };
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = stamped;
-        return next;
+      setTransactions((prev) => {
+        const idx = prev.findIndex((t) => t.id === txn.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = stamped;
+          return next;
+        }
+        return [stamped, ...prev];
+      });
+      const uid = requireUid();
+      if (uid) {
+        const { saveTransaction } = await import("./firebase-data");
+        await saveTransaction(uid, stamped);
       }
-      return [stamped, ...prev];
-    });
-  }, []);
+    },
+    [requireUid]
+  );
 
-  const deleteTransaction = useCallback((id: string) => {
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  const deleteTransaction = useCallback(
+    async (id: string) => {
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      const uid = requireUid();
+      if (uid) {
+        const { deleteTransaction: deleteRemote } = await import("./firebase-data");
+        await deleteRemote(uid, id);
+      }
+    },
+    [requireUid]
+  );
 
   const updateNotificationPreference = useCallback(
     (patch: Partial<NotificationPreference>) => {
-      setNotificationPreference((prev) => ({ ...prev, ...patch }));
+      setNotificationPreference((prev) => {
+        const next = { ...prev, ...patch };
+        const uid = hydratedUid.current;
+        if (uid) {
+          void (async () => {
+            const { saveNotificationPreference } = await import("./firebase-data");
+            await saveNotificationPreference(uid, next);
+          })();
+        }
+        return next;
+      });
     },
     []
   );
 
   const updateUser = useCallback((patch: Partial<User>) => {
-    setUser((prev) => ({ ...prev, ...patch, updatedAt: new Date().toISOString() }));
+    setUser((prev) => {
+      const next = { ...prev, ...patch, updatedAt: new Date().toISOString() };
+      const uid = hydratedUid.current;
+      if (uid) {
+        void (async () => {
+          const { upsertUserProfile } = await import("./firebase-data");
+          await upsertUserProfile(uid, next);
+        })();
+      }
+      return next;
+    });
   }, []);
 
   const refresh = useCallback(() => {
@@ -214,7 +380,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       transactions,
       notificationPreference,
       isLoading,
+      isAuthReady,
       isAuthenticated,
+      isDemoMode,
       upsertCard,
       archiveCard,
       upsertTransaction,
@@ -232,7 +400,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       transactions,
       notificationPreference,
       isLoading,
+      isAuthReady,
       isAuthenticated,
+      isDemoMode,
       upsertCard,
       archiveCard,
       upsertTransaction,
@@ -246,7 +416,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      {error ? (
+        <div
+          role="status"
+          className="border-b border-status-critical/30 bg-status-critical/10 px-4 py-2 text-center text-[13px] text-status-critical"
+        >
+          {error}
+        </div>
+      ) : null}
+      {children}
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): AppStore {

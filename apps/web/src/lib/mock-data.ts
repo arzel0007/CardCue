@@ -1,9 +1,9 @@
 import type { CreditCard, NotificationPreference, Transaction, User } from "./types";
 
 /**
- * Local mock dataset for the web companion.
- * Fully interactive without a live Supabase connection.
- * Dates are relative to "today" so the UI always looks alive.
+ * Demo-mode dataset (no Firebase env configured).
+ * Used only for local UI exploration — never for production user data.
+ * Live data is loaded from Firestore when Firebase is configured.
  */
 
 const nowISO = new Date().toISOString();

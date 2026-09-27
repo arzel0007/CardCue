@@ -16,14 +16,21 @@ export interface TransactionFormValues {
   notes: string;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Calendar day in the user's timezone (not UTC — avoids off-by-one near midnight). */
+function todayISOLocal(timeZone?: string): string {
+  const tz = timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 const emptyValues = (cardId: string): TransactionFormValues => ({
   cardId,
   amount: 0,
-  transactionDate: todayISO(),
+  transactionDate: todayISOLocal(),
   category: "Groceries",
   merchant: "",
   notes: "",

@@ -53,7 +53,7 @@ export default function TransactionsPage() {
 
   function handleSave(values: TransactionFormValues) {
     const now = new Date().toISOString();
-    upsertTransaction({
+    void upsertTransaction({
       id: editing?.id ?? newTransactionId(),
       userId: user.id,
       cardId: values.cardId,
@@ -183,7 +183,7 @@ export default function TransactionsPage() {
               <Button
                 variant="destructive"
                 onClick={() => {
-                  deleteTransaction(deleteId);
+                  void deleteTransaction(deleteId);
                   setDeleteId(null);
                 }}
               >

@@ -33,8 +33,8 @@ export interface CreditCard {
   lastFourDigits: string;
   /** display only */
   creditLimit: number;
-  /** user's cycle budget — NEVER "available credit" */
-  personalCycleLimit: number;
+  /** user's cycle budget — NEVER "available credit". null = not set */
+  personalCycleLimit: number | null;
   /** 1–31 */
   statementDay: number;
   /** 1–31 */

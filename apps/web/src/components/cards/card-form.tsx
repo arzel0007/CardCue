@@ -13,7 +13,8 @@ export interface CardFormValues {
   cardType: string;
   lastFourDigits: string;
   creditLimit: number;
-  personalCycleLimit: number;
+  /** null = no personal cycle limit set */
+  personalCycleLimit: number | null;
   statementDay: number;
   dueDay: number;
 }
@@ -75,8 +76,8 @@ export function CardFormDialog({
       next.lastFourDigits = "Enter exactly 4 digits.";
     }
     if (values.creditLimit < 0) next.creditLimit = "Must be zero or more.";
-    if (values.personalCycleLimit <= 0) {
-      next.personalCycleLimit = "Personal cycle limit must be greater than zero.";
+    if (values.personalCycleLimit != null && values.personalCycleLimit < 0) {
+      next.personalCycleLimit = "Must be zero or more.";
     }
     if (values.statementDay < 1 || values.statementDay > 31) {
       next.statementDay = "Day must be 1–31.";
@@ -181,10 +182,14 @@ export function CardFormDialog({
             <Input
               id="card-limit"
               type="number"
-              min={1}
+              min={0}
               step={100}
-              value={values.personalCycleLimit}
-              onChange={(e) => set("personalCycleLimit", Number(e.target.value))}
+              value={values.personalCycleLimit ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value;
+                set("personalCycleLimit", raw === "" ? null : Number(raw));
+              }}
+              placeholder="No limit"
             />
           </Field>
         </div>

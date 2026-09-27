@@ -70,7 +70,7 @@ export default function CardsPage() {
       createdAt: editing?.createdAt ?? now,
       updatedAt: now,
     };
-    upsertCard(base);
+    void upsertCard(base);
     setFormOpen(false);
     setEditing(null);
   }
@@ -200,7 +200,7 @@ export default function CardsPage() {
             <Button
               variant="destructive"
               onClick={() => {
-                if (archiveTarget) archiveCard(archiveTarget.id);
+                if (archiveTarget) void archiveCard(archiveTarget.id);
                 setArchiveTarget(null);
               }}
             >

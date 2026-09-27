@@ -3,6 +3,9 @@
 import * as React from "react";
 import { Button } from "./button";
 
+/**
+ * Modal dialog with keyboard focus management (WCAG dialog pattern).
+ */
 export function Dialog({
   open,
   onClose,
@@ -18,16 +21,50 @@ export function Dialog({
   children: React.ReactNode;
   footer?: React.ReactNode;
 }) {
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const descId = React.useId();
+
   React.useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const panel = panelRef.current;
+    const focusable = panel?.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    focusable?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panel) return;
+      const items = Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((el) => el.offsetParent !== null);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener("keydown", onKey);
+
+    document.addEventListener("keydown", onKeyDown, true);
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKeyDown, true);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.();
     };
   }, [open, onClose]);
 
@@ -42,16 +79,22 @@ export function Dialog({
         className="absolute inset-0 bg-black/40"
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-labelledby={titleId}
+        aria-describedby={description ? descId : undefined}
         className="relative z-10 max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-divider bg-surface p-6 shadow-sheet sm:rounded-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-[20px] font-semibold text-ink">{title}</h2>
+            <h2 id={titleId} className="text-[20px] font-semibold text-ink">
+              {title}
+            </h2>
             {description ? (
-              <p className="mt-1 text-[13px] text-ink-secondary">{description}</p>
+              <p id={descId} className="mt-1 text-[13px] text-ink-secondary">
+                {description}
+              </p>
             ) : null}
           </div>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
@@ -59,7 +102,7 @@ export function Dialog({
           </Button>
         </div>
         {children}
-        {footer ? <div className="mt-6 flex justify-end gap-2">{footer}</div> : null}
+        {footer ? <div className="mt-5">{footer}</div> : null}
       </div>
     </div>
   );

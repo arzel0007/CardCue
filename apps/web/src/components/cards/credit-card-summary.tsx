@@ -70,7 +70,9 @@ export function CreditCardSummary({
           <p className="text-[13px] text-ink-secondary">
             of{" "}
             <span className="tabular">
-              {formatMoney(card.personalCycleLimit, currency)}
+              {card.personalCycleLimit != null
+                ? formatMoney(card.personalCycleLimit, currency)
+                : "no limit"}
             </span>
           </p>
         </div>

@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
+import { CardCueMark } from "@/components/brand/cardcue-logo";
 
 type Mode = "signin" | "signup";
 
@@ -47,7 +48,7 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
       {/* Brand story — left */}
       <aside className="auth-brand" aria-hidden="false">
         <Link href="/" className="auth-logo">
-          <span className="auth-logo-mark">CC</span>
+          <CardCueMark size={36} />
           <span className="auth-logo-word">CardCue</span>
         </Link>
 
@@ -116,7 +117,7 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
       <main className="auth-form-panel">
         <div className="auth-form-card">
           <Link href="/" className="auth-logo auth-mobile-logo">
-            <span className="auth-logo-mark">CC</span>
+            <CardCueMark size={36} />
             <span className="auth-logo-word" style={{ color: "var(--ink)" }}>
               CardCue
             </span>
