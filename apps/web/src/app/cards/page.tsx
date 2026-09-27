@@ -85,7 +85,7 @@ export default function CardsPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <PageHeader onAdd={() => { setEditing(null); setFormOpen(true); }} />
 
       {error ? (
@@ -103,9 +103,9 @@ export default function CardsPage() {
         <section aria-label="Card list" className="space-y-5">
           <SectionHeader
             title={`${activeCards.length} ${activeCards.length === 1 ? "card" : "cards"}`}
-            subtitle="Credit limit is display only. Personal Cycle Limit is your budget."
+            subtitle="Personal Cycle Limit is your budget — credit limit is display only."
           />
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
             {views.map((view) => (
               <CreditCardSummary
                 key={view.card.id}
@@ -220,16 +220,18 @@ export default function CardsPage() {
 
 function PageHeader({ onAdd }: { onAdd: () => void }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-ink">
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-[32px]">
           Cards
         </h1>
-        <p className="mt-2 max-w-xl text-[15px] text-ink-secondary">
+        <p className="mt-1 max-w-xl text-[14px] text-ink-secondary sm:text-[15px]">
           Manage nicknames, statement days, and Personal Cycle Limits.
         </p>
       </div>
-      <Button onClick={onAdd}>Add card</Button>
+      <Button onClick={onAdd} className="shrink-0">
+        Add card
+      </Button>
     </header>
   );
 }

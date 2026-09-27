@@ -121,58 +121,66 @@ export default function DashboardPage() {
     .sort((a, b) => a.cycle.daysUntilDue - b.cycle.daysUntilDue)[0];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6 sm:space-y-8">
       <PageHeader />
 
-      {/* Next up + Payment due */}
-      <section aria-label="Highlights" className="grid gap-4 lg:grid-cols-2">
-        <Surface className="p-6">
-          <p className="caption text-accent">Next up</p>
-          <h2 className="mt-2 text-[28px] font-semibold leading-tight text-ink">
-            {countdownCopy(nextUp.cycle.daysUntilStatement, "Statement")}
-          </h2>
-          <p className="mt-2 text-[15px] text-ink-secondary">
-            {nextUp.card.nickname} ·{" "}
-            <span className="tabular">
-              {formatMoney(nextUp.spending.personalLimitRemaining ?? 0, user.preferredCurrency)}
-            </span>{" "}
-            remaining
-          </p>
-          <p className="mt-4 text-[13px] text-ink-tertiary">
-            Statement {formatDateShort(nextUp.cycle.nextStatementDate)} ·{" "}
-            {nextUp.card.issuer} •••• {nextUp.card.lastFourDigits}
-          </p>
-          <Link
-            href="/cards"
-            className="mt-5 inline-flex text-[14px] font-medium text-accent hover:underline"
-          >
-            View cards →
-          </Link>
+      {/* Next up + Payment due — compact highlight tiles */}
+      <section aria-label="Highlights" className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+        <Surface className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="caption text-accent">Next up</p>
+              <h2 className="mt-1 truncate text-[20px] font-semibold leading-tight text-ink sm:text-[22px]">
+                {countdownCopy(nextUp.cycle.daysUntilStatement, "Statement")}
+              </h2>
+              <p className="mt-1 truncate text-[13px] text-ink-secondary">
+                {nextUp.card.nickname} ·{" "}
+                <span className="tabular">
+                  {formatMoney(nextUp.spending.personalLimitRemaining ?? 0, user.preferredCurrency)}
+                </span>{" "}
+                left
+              </p>
+              <p className="mt-1 truncate text-[12px] text-ink-tertiary">
+                {formatDateShort(nextUp.cycle.nextStatementDate)} · {nextUp.card.issuer} ••••{" "}
+                {nextUp.card.lastFourDigits}
+              </p>
+            </div>
+            <Link
+              href="/cards"
+              className="shrink-0 rounded-full bg-accent-soft px-3 py-1.5 text-[12px] font-medium text-accent"
+            >
+              Cards
+            </Link>
+          </div>
         </Surface>
 
-        <Surface className="p-6">
-          <p className="caption text-status-attention">Payment due</p>
-          <h2 className="mt-2 text-[28px] font-semibold leading-tight text-ink">
-            {dueNext
-              ? countdownCopy(dueNext.cycle.daysUntilDue, "Due")
-              : "No payments due"}
-          </h2>
-          <p className="mt-2 text-[15px] text-ink-secondary">
-            {dueNext
-              ? `${dueNext.card.nickname} · due ${formatDateShort(dueNext.cycle.nextDueDate)}`
-              : "You’re all caught up."}
-          </p>
-          {dueNext ? (
-            <p className="mt-4 text-[13px] text-ink-tertiary">
-              Last 4 · {dueNext.card.lastFourDigits}
-            </p>
-          ) : null}
-          <Link
-            href="/transactions"
-            className="mt-5 inline-flex text-[14px] font-medium text-accent hover:underline"
-          >
-            Review spending →
-          </Link>
+        <Surface className="p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="caption text-status-attention">Payment due</p>
+              <h2 className="mt-1 truncate text-[20px] font-semibold leading-tight text-ink sm:text-[22px]">
+                {dueNext
+                  ? countdownCopy(dueNext.cycle.daysUntilDue, "Due")
+                  : "No payments due"}
+              </h2>
+              <p className="mt-1 truncate text-[13px] text-ink-secondary">
+                {dueNext
+                  ? `${dueNext.card.nickname} · ${formatDateShort(dueNext.cycle.nextDueDate)}`
+                  : "You’re all caught up."}
+              </p>
+              {dueNext ? (
+                <p className="mt-1 truncate text-[12px] text-ink-tertiary">
+                  •••• {dueNext.card.lastFourDigits}
+                </p>
+              ) : null}
+            </div>
+            <Link
+              href="/transactions"
+              className="shrink-0 rounded-full bg-surface-muted px-3 py-1.5 text-[12px] font-medium text-ink-secondary"
+            >
+              Spend
+            </Link>
+          </div>
         </Surface>
       </section>
 
@@ -182,10 +190,10 @@ export default function DashboardPage() {
       </section>
 
       {/* Card list */}
-      <section aria-label="Your cards" className="space-y-5">
+      <section aria-label="Your cards" className="space-y-3 sm:space-y-4">
         <SectionHeader
           title="Your cards"
-          subtitle="Cycle spending against each Personal Cycle Limit"
+          subtitle="Cycle spending vs Personal Cycle Limit"
           action={
             <Button
               variant="secondary"
@@ -197,7 +205,7 @@ export default function DashboardPage() {
             </Button>
           }
         />
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
           {sorted.map((view: CardCycleView) => (
             <CreditCardSummary
               key={view.card.id}
@@ -221,10 +229,10 @@ function PageHeader() {
   return (
     <header>
       <p className="caption text-ink-secondary">{greeting}</p>
-      <h1 className="mt-1 text-[32px] font-semibold leading-tight tracking-tight text-ink">
+      <h1 className="mt-1 text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-[32px]">
         {displayNameForUser(user)}
       </h1>
-      <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-secondary">
+      <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-ink-secondary sm:text-[15px]">
         Here’s where your cards stand this cycle.
       </p>
     </header>

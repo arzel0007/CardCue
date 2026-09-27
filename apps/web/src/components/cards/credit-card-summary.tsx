@@ -10,8 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { StatusChip } from "@/components/ui/status";
 
 /**
- * Physical-card-inspired summary — not a fake payment card.
- * Issuer + nickname, last 4, cycle dates, countdown, spending progress, status.
+ * Compact card summary — issuer, nickname, cycle, spending, status.
+ * Dense enough for mobile lists; scales to two-column desktop.
  */
 export function CreditCardSummary({
   view,
@@ -22,7 +22,6 @@ export function CreditCardSummary({
   view: CardCycleView;
   currency?: string;
   href?: string;
-  /** Row of card actions — rendered in the footer so nothing overlaps the status chip. */
   actions?: React.ReactNode;
 }) {
   const { card, cycle, spending, status } = view;
@@ -39,15 +38,15 @@ export function CreditCardSummary({
           : "accent";
 
   const body = (
-    <article className="surface flex flex-col gap-5 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="caption">{card.issuer}</p>
-          <h3 className="mt-1 text-[20px] font-semibold leading-tight text-ink">
+    <article className="surface flex flex-col gap-3 p-4 sm:p-5">
+      {/* Row 1: name + status */}
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-[16px] font-semibold leading-tight text-ink sm:text-[17px]">
             {card.nickname}
           </h3>
-          <p className="mt-1 text-[13px] text-ink-secondary">
-            •••• {card.lastFourDigits}
+          <p className="mt-0.5 truncate text-[12px] text-ink-secondary">
+            {card.issuer} · •••• {card.lastFourDigits}
           </p>
         </div>
         <StatusChip
@@ -62,12 +61,13 @@ export function CreditCardSummary({
         />
       </div>
 
+      {/* Row 2: spend + progress */}
       <div>
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="tabular text-[28px] font-semibold leading-none text-ink">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="tabular text-[22px] font-semibold leading-none text-ink sm:text-[24px]">
             {formatMoney(spending.currentCycleSpending, currency)}
           </p>
-          <p className="text-[13px] text-ink-secondary">
+          <p className="truncate text-[12px] text-ink-secondary">
             of{" "}
             <span className="tabular">
               {card.personalCycleLimit != null
@@ -76,60 +76,39 @@ export function CreditCardSummary({
             </span>
           </p>
         </div>
-        <div className="mt-3">
+        <div className="mt-2">
           <Progress
             value={util}
             tone={progressTone}
             label={`${formatPercent(util)} of personal cycle limit`}
           />
         </div>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <p className="text-[13px] text-ink-secondary">
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <p className="truncate text-[12px] text-ink-secondary">
             {remaining != null ? (
-              <span className="tabular">{formatMoney(remaining, currency)} remaining</span>
+              <span className="tabular">{formatMoney(remaining, currency)} left</span>
             ) : (
-              "No personal cycle limit set"
+              "No personal cycle limit"
             )}
           </p>
-          <p className="tabular text-[12px] text-ink-tertiary">
+          <p className="tabular shrink-0 text-[11px] text-ink-tertiary">
             {formatPercent(util)}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 border-t border-divider pt-4">
-        <div>
-          <p className="caption">Cycle</p>
-          <p className="mt-1 text-[13px] text-ink">
-            {formatDateShort(cycle.currentCycleStart)} –{" "}
-            {formatDateShort(cycle.currentCycleEnd)}
-          </p>
-        </div>
-        <div>
-          <p className="caption">Statement</p>
-          <p className="mt-1 text-[13px] text-ink">
-            {formatDateShort(cycle.nextStatementDate)}
-            <span className="text-ink-secondary">
-              {" "}
-              · {countdownCopy(cycle.daysUntilStatement, "Statement").replace(/^Statement /, "in ")}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone="accent">
-          {countdownCopy(cycle.daysUntilDue, "Due")}
+      {/* Row 3: timeline chips */}
+      <div className="flex flex-wrap items-center gap-1.5 border-t border-divider pt-2.5">
+        <Badge tone="neutral">
+          <span className="tabular">
+            {formatDateShort(cycle.currentCycleStart)} – {formatDateShort(cycle.currentCycleEnd)}
+          </span>
         </Badge>
-        <span className="text-[12px] text-ink-tertiary">
-          Due {formatDateShort(cycle.nextDueDate)}
-        </span>
+        <Badge tone="accent">{countdownCopy(cycle.daysUntilDue, "Due")}</Badge>
       </div>
 
       {actions ? (
-        <div className="flex items-center justify-end gap-1 border-t border-divider pt-3">
-          {actions}
-        </div>
+        <div className="flex items-center justify-end gap-1">{actions}</div>
       ) : null}
     </article>
   );

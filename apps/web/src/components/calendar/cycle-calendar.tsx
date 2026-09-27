@@ -38,7 +38,7 @@ const VERDICT_META: Record<
   ok: {
     title: "OK to spend",
     short: "OK",
-    legend: "OK to spend — still in this cycle",
+    legend: "OK",
     cellClass: "spend-ok",
     bannerClass: "spend-banner-ok",
     mark: "✓",
@@ -46,8 +46,8 @@ const VERDICT_META: Record<
   },
   "near-limit": {
     title: "Near personal limit",
-    short: "Near limit",
-    legend: "Near personal cycle limit — check budget",
+    short: "Near",
+    legend: "Near limit",
     cellClass: "spend-near-limit",
     bannerClass: "spend-banner-risk",
     mark: "~",
@@ -55,8 +55,8 @@ const VERDICT_META: Record<
   },
   "limit-reached": {
     title: "Personal cycle limit reached",
-    short: "Limit hit",
-    legend: "Limit reached this cycle",
+    short: "Limit",
+    legend: "Limit",
     cellClass: "spend-limit-reached",
     bannerClass: "spend-banner-risk",
     mark: "!",
@@ -64,8 +64,8 @@ const VERDICT_META: Record<
   },
   "outside-cycle": {
     title: "Outside this cycle",
-    short: "Next cycle",
-    legend: "Outside this cycle — goes on the next statement",
+    short: "Next",
+    legend: "Next cycle",
     cellClass: "spend-outside",
     bannerClass: "spend-banner-outside",
     mark: "»",
@@ -159,123 +159,124 @@ export function CycleCalendar({
         <section className="surface overflow-hidden" aria-label="Spend window calendar">
           <div className="border-b border-divider p-5 pb-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="caption">Spend window</p>
-                <h2 className="mt-1 text-[22px] font-semibold text-ink">
-                  {monthLabel(cursor.year, cursor.month)}
-                </h2>
-                <p className="mt-1 text-[13px] text-ink-secondary">{cardLabel}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
-                  ←
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setCursor({ year: today.year, month: today.month });
-                    setSelected(today);
-                  }}
-                >
-                  Today
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => shiftMonth(1)} aria-label="Next month">
-                  →
-                </Button>
-              </div>
+            <div className="min-w-0">
+              <p className="caption">Spend window</p>
+              <h2 className="mt-1 text-[20px] font-semibold text-ink sm:text-[22px]">
+                {monthLabel(cursor.year, cursor.month)}
+              </h2>
+              <p className="mt-0.5 truncate text-[12px] text-ink-secondary">{cardLabel}</p>
             </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button variant="ghost" size="sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                ←
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCursor({ year: today.year, month: today.month });
+                  setSelected(today);
+                }}
+              >
+                Today
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => shiftMonth(1)} aria-label="Next month">
+                →
+              </Button>
+            </div>
+          </div>
 
-            <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {(Object.keys(VERDICT_META) as SpendDayVerdict[]).map((key) => (
-                <li key={key} className="flex items-center gap-2.5 text-[12px] text-ink-secondary">
-                  <span
-                    aria-hidden="true"
-                    className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 text-[12px] font-bold ${VERDICT_META[key].cellClass}`}
-                  >
-                    {VERDICT_META[key].mark}
+          <ul className="mt-3 flex flex-wrap gap-1.5">
+            {(Object.keys(VERDICT_META) as SpendDayVerdict[]).map((key) => (
+              <li
+                key={key}
+                className="flex items-center gap-1.5 rounded-full border border-divider px-2 py-1 text-[11px] text-ink-secondary"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${VERDICT_META[key].cellClass}`}
+                >
+                  {VERDICT_META[key].mark}
+                </span>
+                {VERDICT_META[key].legend}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="p-3 sm:p-4">
+          <div role="grid" aria-label="Month grid" className="grid grid-cols-7 gap-1">
+            {WEEKDAYS.map((d) => (
+              <div
+                key={d}
+                role="columnheader"
+                className="pb-1 text-center text-[10px] font-semibold uppercase tracking-wider text-ink-tertiary"
+              >
+                {d.slice(0, 3)}
+              </div>
+            ))}
+            {days.map((day) => {
+              const info = dayCutoffInfo(day, schedule, today);
+              const verdict = spendDayVerdict(
+                day,
+                schedule,
+                today,
+                transactions,
+                personalCycleLimit ?? null
+              );
+              const outsideMonth = day.month !== cursor.month;
+              const isSelected = dayEquals(day, selected);
+              const meta = VERDICT_META[verdict];
+              return (
+                <button
+                  key={toISODate(day)}
+                  type="button"
+                  role="gridcell"
+                  aria-selected={isSelected}
+                  aria-label={`${toISODate(day)}, ${meta.title}${info.isToday ? ", today" : ""}${info.isStatementDay ? ", statement cutoff" : ""}${info.isDueDay ? ", payment due" : ""}`}
+                  onClick={() => setSelected(day)}
+                  className={[
+                    "relative min-h-[48px] rounded-xl border p-1.5 text-left",
+                    "transition-transform hover:scale-[1.04]",
+                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                    outsideMonth ? "opacity-30" : "",
+                    isSelected ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : "",
+                    meta.cellClass,
+                  ].join(" ")}
+                >
+                  <span className="flex items-center justify-between">
+                    <span className="text-[13px] font-semibold tabular leading-none">
+                      {day.day}
+                    </span>
+                    {info.isToday ? (
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                    ) : null}
                   </span>
-                  <span>{VERDICT_META[key].legend}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
 
-          <div className="p-4 pt-3">
-            <div role="grid" aria-label="Month grid" className="grid grid-cols-7 gap-1.5">
-              {WEEKDAYS.map((d) => (
-                <div
-                  key={d}
-                  role="columnheader"
-                  className="pb-1 text-center text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary"
-                >
-                  {d}
-                </div>
-              ))}
-              {days.map((day) => {
-                const info = dayCutoffInfo(day, schedule, today);
-                const verdict = spendDayVerdict(
-                  day,
-                  schedule,
-                  today,
-                  transactions,
-                  personalCycleLimit ?? null
-                );
-                const outsideMonth = day.month !== cursor.month;
-                const isSelected = dayEquals(day, selected);
-                const meta = VERDICT_META[verdict];
-                return (
-                  <button
-                    key={toISODate(day)}
-                    type="button"
-                    role="gridcell"
-                    aria-selected={isSelected}
-                    aria-label={`${toISODate(day)}, ${meta.title}${info.isToday ? ", today" : ""}${info.isStatementDay ? ", statement cutoff" : ""}${info.isDueDay ? ", payment due" : ""}`}
-                    onClick={() => setSelected(day)}
-                    className={[
-                      "relative min-h-[72px] rounded-xl border-2 p-2 text-left",
-                      "transition-transform hover:scale-[1.03]",
-                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-                      outsideMonth ? "opacity-30" : "",
-                      isSelected ? "ring-2 ring-accent ring-offset-2 ring-offset-surface" : "",
-                      meta.cellClass,
-                    ].join(" ")}
-                  >
-                    <span className="flex items-start justify-between gap-1">
-                      <span className="text-[15px] font-semibold tabular leading-none">
-                        {day.day}
-                      </span>
-                      {info.isToday ? (
-                        <span className="rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold uppercase text-bg">
-                          Today
-                        </span>
-                      ) : null}
+                  <span className="mt-1.5 flex flex-wrap items-center gap-1">
+                    <span
+                      aria-hidden="true"
+                      className="text-[11px] font-bold leading-none"
+                      title={meta.title}
+                    >
+                      {meta.mark}
                     </span>
-
-                    <span className="mt-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide leading-tight">
-                      <span aria-hidden="true">{meta.mark}</span>
-                      {meta.short}
-                    </span>
-
-                    {(info.isStatementDay || info.isDueDay) && (
-                      <span className="mt-1.5 flex flex-wrap gap-1">
-                        {info.isStatementDay ? (
-                          <span className="rounded bg-ink px-1 py-0.5 text-[8px] font-bold uppercase text-bg">
-                            Cutoff
-                          </span>
-                        ) : null}
-                        {info.isDueDay ? (
-                          <span className="rounded bg-status-attention px-1 py-0.5 text-[8px] font-bold uppercase text-white">
-                            Due
-                          </span>
-                        ) : null}
+                    {info.isStatementDay ? (
+                      <span className="rounded-full bg-ink px-1 py-0.5 text-[8px] font-bold uppercase leading-none text-bg">
+                        Cut
                       </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    ) : null}
+                    {info.isDueDay ? (
+                      <span className="rounded-full bg-status-attention px-1 py-0.5 text-[8px] font-bold uppercase leading-none text-white">
+                        Due
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
           </div>
+        </div>
         </section>
 
         <DayDetail facts={selectedFacts} currency={currency} />
