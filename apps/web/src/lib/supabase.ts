@@ -1,38 +1,18 @@
 /**
- * Thin Supabase client stub.
+ * Legacy Supabase seam — CardCue now targets Firebase (Auth + Firestore + Hosting).
+ * See docs/FIREBASE.md and src/lib/firebase.ts.
  *
- * The web companion currently runs on local mock state (see `mock-data.ts` /
- * `store.ts`). This module is the seam where a live Supabase connection will
- * plug in — keep UI code free of direct Supabase imports.
- *
- * No credentials belong in this repo. Wire via NEXT_PUBLIC_SUPABASE_URL and
- * NEXT_PUBLIC_SUPABASE_ANON_KEY at deploy time only.
+ * Kept so older imports don't break; this module is a no-op stub.
  */
 
-export interface SupabaseConfig {
-  url: string | undefined;
-  anonKey: string | undefined;
-  isConfigured: boolean;
+export interface LegacySupabaseConfig {
+  isConfigured: false;
 }
 
-export function getSupabaseConfig(): SupabaseConfig {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return {
-    url,
-    anonKey,
-    isConfigured: Boolean(url && anonKey),
-  };
+export function getSupabaseConfig(): LegacySupabaseConfig {
+  return { isConfigured: false };
 }
 
-/**
- * Placeholder client. Returns null until real credentials are provided.
- * Replace with `createClient(url, anonKey)` from `@supabase/supabase-js`
- * when the backend is connected.
- */
 export function getSupabaseClient(): null {
-  const config = getSupabaseConfig();
-  if (!config.isConfigured) return null;
-  // Intentionally not implemented — mock state covers the companion UI.
   return null;
 }

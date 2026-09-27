@@ -63,6 +63,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    // Prefer real Firebase Auth when configured; otherwise mock session.
+    const { getFirebaseAuth } = await import("./firebase");
+    const { signInEmailPassword } = await import("./firebase-data");
+    if (getFirebaseAuth()) {
+      await signInEmailPassword(email, password);
+      setIsAuthenticated(true);
+      setUser((prev) => ({ ...prev, email, updatedAt: new Date().toISOString() }));
+      return;
+    }
+
     // Mock delay so the button can show pending state
     await new Promise((r) => setTimeout(r, 450));
     if (!email.includes("@")) {
@@ -85,6 +95,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
+    const { getFirebaseAuth } = await import("./firebase");
+    const { signUpEmailPassword } = await import("./firebase-data");
+    if (getFirebaseAuth()) {
+      await signUpEmailPassword(email, password);
+      setIsAuthenticated(true);
+      setUser((prev) => ({
+        ...prev,
+        email,
+        updatedAt: new Date().toISOString(),
+        preferences: { ...prev.preferences, displayName: name.trim() },
+      }));
+      return;
+    }
+
     await new Promise((r) => setTimeout(r, 550));
     if (!email.includes("@")) {
       throw new Error("Enter a valid email address.");
@@ -110,6 +134,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(() => {
+    void (async () => {
+      try {
+        const { getFirebaseAuth } = await import("./firebase");
+        const { signOutFirebase } = await import("./firebase-data");
+        if (getFirebaseAuth()) await signOutFirebase();
+      } catch {
+        // ignore
+      }
+    })();
     setIsAuthenticated(false);
     try {
       window.localStorage.removeItem("cardcue.session");

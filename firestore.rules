@@ -1,0 +1,80 @@
+rules_version = '2';
+
+// CardCue Firestore security rules
+// All user data is scoped to users/{uid}. Never relax auth checks for convenience.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // User profile
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // Create only with matching uid and sanitized fields
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
+        && request.resource.data.email is string
+        && request.resource.data.preferredCurrency is string
+        && request.resource.data.timezone is string;
+
+      // Credit cards — nested per user (no cross-user access)
+      match /cards/{cardId} {
+        allow read, list: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.userId == uid
+          && request.resource.data.nickname is string
+          && request.resource.data.nickname.size() > 0
+          && request.resource.data.nickname.size() <= 80
+          && request.resource.data.issuer is string
+          && request.resource.data.lastFourDigits is string
+          && request.resource.data.lastFourDigits.matches('^[0-9]{4}$')
+          && request.resource.data.creditLimit is number
+          && request.resource.data.creditLimit >= 0
+          && request.resource.data.statementDay is int
+          && request.resource.data.statementDay >= 1
+          && request.resource.data.statementDay <= 31
+          && request.resource.data.dueDay is int
+          && request.resource.data.dueDay >= 1
+          && request.resource.data.dueDay <= 31
+          && !request.resource.data.keys().hasAny(['pan', 'cardNumber', 'cvv', 'pin', 'password']);
+
+        allow update, delete: if isOwner(uid)
+          && request.resource.data.userId == uid
+          && !request.resource.data.keys().hasAny(['pan', 'cardNumber', 'cvv', 'pin', 'password']);
+      }
+
+      // Transactions — user-entered only
+      match /transactions/{txnId} {
+        allow read, list: if isOwner(uid);
+        allow create: if isOwner(uid)
+          && request.resource.data.userId == uid
+          && request.resource.data.cardId is string
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.transactionDate is string
+          && request.resource.data.category is string;
+
+        allow update, delete: if isOwner(uid) && request.resource.data.userId == uid;
+      }
+
+      // Notification preferences
+      match /notificationPreferences/{prefId} {
+        allow read, write: if isOwner(uid)
+          && (request.resource == null || request.resource.data.userId == uid);
+      }
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

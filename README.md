@@ -57,9 +57,11 @@ CardCue/
 
 **iOS** — Swift, SwiftUI, SwiftData, UserNotifications, WidgetKit, App Intents, Keychain, LocalAuthentication
 
-**Web** — Next.js, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion, Recharts
+**Web** — Next.js, TypeScript, Tailwind CSS, Recharts
 
-**Backend** — Supabase (PostgreSQL, Auth, RLS, Edge Functions)
+**Backend** — Firebase (Firestore, Auth, Hosting)
+
+See [docs/FIREBASE.md](docs/FIREBASE.md) for project setup and deploy.
 
 ---
 
@@ -116,3 +118,17 @@ Only store: issuer, nickname, last four digits, credit limit, personal cycle lim
 - [Domain model](docs/DOMAIN.md)
 - [Design system](docs/DESIGN_SYSTEM.md)
 - [MVP scope](docs/MVP.md)
+- [Firebase setup](docs/FIREBASE.md)
+- [Security](docs/SECURITY.md)
+
+## Firebase quick start
+
+```bash
+# 1. Create project at console.firebase.google.com (Auth + Firestore + Hosting)
+# 2. Copy web config into apps/web/.env.local
+# 3. Link this repo
+firebase login
+firebase use --add          # alias: default
+npm run web:build           # writes apps/web/out
+npm run firebase:deploy
+```

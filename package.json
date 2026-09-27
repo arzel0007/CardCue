@@ -1,0 +1,12 @@
+{
+  "name": "cardcue",
+  "private": true,
+  "scripts": {
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:test": "npm --prefix apps/web run test",
+    "engine:test": "swift run BillingCycleEngineTests --package-path packages/BillingCycleEngine",
+    "firebase:deploy": "firebase deploy --only firestore:rules,firestore:indexes,hosting",
+    "firebase:emulators": "firebase emulators:start"
+  }
+}
