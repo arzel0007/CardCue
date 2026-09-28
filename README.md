@@ -1,4 +1,6 @@
-# CardCue
+# CardO
+
+**Billing Cycles & Spend Limits**
 
 Premium credit card cycle & spending awareness.
 
@@ -7,7 +9,7 @@ iOS is the primary product. Web is the companion / management interface.
 > **What is happening with my cards right now?**
 > **What should I be aware of next?**
 
-CardCue is an organizational, tracking, and reminder tool — not financial advice.
+CardO is an organizational, tracking, and reminder tool — not financial advice.
 
 ---
 
@@ -33,7 +35,7 @@ SPEND → CYCLE → STATEMENT → PAYMENT → NEXT CYCLE
 ## Repository layout
 
 ```
-CardCue/
+CardO/
 ├── apps/
 │   ├── ios/                 # SwiftUI app (primary)
 │   └── web/                 # Next.js companion
@@ -86,7 +88,7 @@ swift run BillingCycleEngineTests
 ```bash
 cd apps/ios
 xcodegen generate   # if using XcodeGen
-open CardCue.xcodeproj
+open CardO.xcodeproj
 ```
 
 ### Web

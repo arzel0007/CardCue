@@ -1,6 +1,6 @@
-# CardCue Web Companion
+# CardO Web Companion
 
-Premium management companion for CardCue — a credit-card cycle & spending awareness product. iOS is the primary app; this web app is the desktop management surface.
+Premium management companion for CardO — a credit-card cycle & spending awareness product. iOS is the primary app; this web app is the desktop management surface.
 
 ## Stack
 

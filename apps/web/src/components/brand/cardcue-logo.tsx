@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 /**
- * CardCue brand mark — uses the official app icon (cardcue.png).
+ * CardO brand mark — uses the official app icon (cardcue.png).
  */
 export function CardCueMark({
   size = 32,
@@ -36,7 +36,7 @@ export function CardCueLogo({
       <span
         className={`text-[17px] font-semibold tracking-tight ${wordClassName}`}
       >
-        CardCue
+        CardO
       </span>
     </span>
   );

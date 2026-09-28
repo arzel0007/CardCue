@@ -173,19 +173,19 @@ export default function CalendarPage() {
 
 function PageHeader() {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-ink">
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-[32px]">
           Calendar
         </h1>
-        <p className="mt-2 max-w-xl text-[15px] text-ink-secondary">
+        <p className="mt-1 max-w-xl text-[14px] text-ink-secondary sm:text-[15px]">
           See which dates sit inside the statement cutoff and how much of your
           personal cycle limit remains.
         </p>
       </div>
       <Link
         href="/cards"
-        className="rounded-[12px] bg-accent-soft px-4 py-2.5 text-[14px] font-medium text-accent transition-opacity hover:opacity-90"
+        className="shrink-0 rounded-full bg-accent-soft px-4 py-2 text-[13px] font-medium text-accent"
       >
         Manage cards
       </Link>

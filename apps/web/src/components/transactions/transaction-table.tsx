@@ -28,89 +28,130 @@ export function TransactionTable({
   }
 
   return (
-    <div className="surface overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-left">
-          <caption className="sr-only">Transactions for the selected filter</caption>
-          <thead>
-            <tr className="border-b border-divider">
-              <th scope="col" className="caption px-5 py-3 font-medium">
-                Date
-              </th>
-              <th scope="col" className="caption px-5 py-3 font-medium">
-                Merchant
-              </th>
-              <th scope="col" className="caption px-5 py-3 font-medium">
-                Category
-              </th>
-              <th scope="col" className="caption px-5 py-3 font-medium">
-                Card
-              </th>
-              <th scope="col" className="caption px-5 py-3 text-right font-medium">
-                Amount
-              </th>
-              <th scope="col" className="caption px-5 py-3 text-right font-medium">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((txn) => {
-              const card = cardById.get(txn.cardId);
-              return (
-                <tr
-                  key={txn.id}
-                  className="border-b border-divider last:border-b-0 hover:bg-surface-muted/50"
+    <>
+      {/* Mobile / tablet: stacked rows — no horizontal scroll */}
+      <ul className="surface flex flex-col divide-y divide-divider lg:hidden">
+        {transactions.map((txn) => {
+          const card = cardById.get(txn.cardId);
+          return (
+            <li key={txn.id} className="flex flex-col gap-2 p-4">
+              <div className="flex min-w-0 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-medium text-ink">
+                    {txn.merchant || txn.category}
+                  </p>
+                  <p className="mt-0.5 truncate text-[12px] text-ink-secondary">
+                    {formatDate(txn.transactionDate)} · {txn.category}
+                    {card ? ` · ${card.nickname}` : ""}
+                  </p>
+                </div>
+                <p className="tabular shrink-0 text-[15px] font-semibold text-ink">
+                  {formatMoney(txn.amount, currency)}
+                </p>
+              </div>
+              <div className="flex justify-end gap-1">
+                <Button variant="ghost" size="sm" onClick={() => onEdit(txn)}>
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-status-critical"
+                  onClick={() => onDelete(txn.id)}
                 >
-                  <td className="whitespace-nowrap px-5 py-3.5 text-[14px] text-ink-secondary">
-                    {formatDate(txn.transactionDate)}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="text-[14px] font-medium text-ink">
-                      {txn.merchant || "—"}
-                    </p>
-                    {txn.notes ? (
-                      <p className="mt-0.5 text-[12px] text-ink-tertiary">{txn.notes}</p>
-                    ) : null}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className="inline-flex rounded-full bg-surface-muted px-2.5 py-1 text-[12px] text-ink-secondary">
-                      {txn.category}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-[13px] text-ink-secondary">
-                    {card ? `${card.nickname} · •••• ${card.lastFourDigits}` : "Unknown"}
-                  </td>
-                  <td className="tabular whitespace-nowrap px-5 py-3.5 text-right text-[15px] font-medium text-ink">
-                    {formatMoney(txn.amount, currency)}
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 text-right">
-                    <div className="inline-flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEdit(txn)}
-                        aria-label={`Edit transaction ${txn.merchant || txn.category}`}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-status-critical"
-                        onClick={() => onDelete(txn.id)}
-                        aria-label={`Delete transaction ${txn.merchant || txn.category}`}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  Delete
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Desktop: table */}
+      <div className="surface overflow-hidden hidden lg:block">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <caption className="sr-only">Transactions for the selected filter</caption>
+            <thead>
+              <tr className="border-b border-divider">
+                <th scope="col" className="caption px-5 py-3 font-medium">
+                  Date
+                </th>
+                <th scope="col" className="caption px-5 py-3 font-medium">
+                  Merchant
+                </th>
+                <th scope="col" className="caption px-5 py-3 font-medium">
+                  Category
+                </th>
+                <th scope="col" className="caption px-5 py-3 font-medium">
+                  Card
+                </th>
+                <th scope="col" className="caption px-5 py-3 text-right font-medium">
+                  Amount
+                </th>
+                <th scope="col" className="caption px-5 py-3 text-right font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((txn) => {
+                const card = cardById.get(txn.cardId);
+                return (
+                  <tr
+                    key={txn.id}
+                    className="border-b border-divider last:border-b-0 hover:bg-surface-muted/50"
+                  >
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[14px] text-ink-secondary">
+                      {formatDate(txn.transactionDate)}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <p className="text-[14px] font-medium text-ink">
+                        {txn.merchant || "—"}
+                      </p>
+                      {txn.notes ? (
+                        <p className="mt-0.5 text-[12px] text-ink-tertiary">{txn.notes}</p>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="inline-flex rounded-full bg-surface-muted px-2.5 py-1 text-[12px] text-ink-secondary">
+                        {txn.category}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 text-[13px] text-ink-secondary">
+                      {card ? `${card.nickname} · •••• ${card.lastFourDigits}` : "Unknown"}
+                    </td>
+                    <td className="tabular whitespace-nowrap px-5 py-3.5 text-right text-[15px] font-medium text-ink">
+                      {formatMoney(txn.amount, currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3.5 text-right">
+                      <div className="inline-flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEdit(txn)}
+                          aria-label={`Edit transaction ${txn.merchant || txn.category}`}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-status-critical"
+                          onClick={() => onDelete(txn.id)}
+                          aria-label={`Delete transaction ${txn.merchant || txn.category}`}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

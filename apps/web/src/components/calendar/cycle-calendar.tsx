@@ -13,63 +13,47 @@ import {
   calendarDay,
   dayCutoffInfo,
   dayEquals,
+  daysUntil,
   spendDayVerdict,
   spendWindowFacts,
   toISODate,
 } from "@/lib/billingCycle";
 import { formatDateShort, formatMoney, formatPercent } from "@/lib/format";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
-const VERDICT_META: Record<
+const VERDICT: Record<
   SpendDayVerdict,
-  {
-    title: string;
-    short: string;
-    legend: string;
-    cellClass: string;
-    bannerClass: string;
-    mark: string;
-    chip: "accent" | "threshold" | "complete" | "neutral";
-  }
+  { title: string; short: string; mark: string; cellClass: string; bannerClass: string }
 > = {
   ok: {
     title: "OK to spend",
     short: "OK",
-    legend: "OK",
+    mark: "✓",
     cellClass: "spend-ok",
     bannerClass: "spend-banner-ok",
-    mark: "✓",
-    chip: "accent",
   },
   "near-limit": {
     title: "Near personal limit",
     short: "Near",
-    legend: "Near limit",
+    mark: "~",
     cellClass: "spend-near-limit",
     bannerClass: "spend-banner-risk",
-    mark: "~",
-    chip: "threshold",
   },
   "limit-reached": {
-    title: "Personal cycle limit reached",
+    title: "Limit reached",
     short: "Limit",
-    legend: "Limit",
+    mark: "!",
     cellClass: "spend-limit-reached",
     bannerClass: "spend-banner-risk",
-    mark: "!",
-    chip: "complete",
   },
   "outside-cycle": {
     title: "Outside this cycle",
     short: "Next",
-    legend: "Next cycle",
+    mark: "»",
     cellClass: "spend-outside",
     bannerClass: "spend-banner-outside",
-    mark: "»",
-    chip: "neutral",
   },
 };
 
@@ -103,11 +87,10 @@ export function CycleCalendar({
   currency?: string;
   cardLabel: string;
 }) {
-  const [cursor, setCursor] = React.useState(() => ({
-    year: today.year,
-    month: today.month,
-  }));
+  const [cursor, setCursor] = React.useState({ year: today.year, month: today.month });
   const [selected, setSelected] = React.useState<CalendarDay>(today);
+  const [slide, setSlide] = React.useState<"none" | "left" | "right">("none");
+  const gridRef = React.useRef<HTMLDivElement>(null);
 
   const days = React.useMemo(() => {
     const start = startOfMonthGrid(cursor.year, cursor.month);
@@ -115,9 +98,13 @@ export function CycleCalendar({
   }, [cursor.year, cursor.month]);
 
   const selectedFacts = React.useMemo(
-    () =>
-      spendWindowFacts(selected, schedule, today, transactions, personalCycleLimit ?? null),
+    () => spendWindowFacts(selected, schedule, today, transactions, personalCycleLimit ?? null),
     [selected, schedule, today, transactions, personalCycleLimit]
+  );
+
+  const todayFacts = React.useMemo(
+    () => spendWindowFacts(today, schedule, today, transactions, personalCycleLimit ?? null),
+    [schedule, today, transactions, personalCycleLimit]
   );
 
   const openDaysLeft = React.useMemo(() => {
@@ -133,7 +120,15 @@ export function CycleCalendar({
     return n;
   }, [schedule, today]);
 
+  const cycleStart = dayCutoffInfo(today, schedule, today).cycleStart;
+  const cycleEnd = dayCutoffInfo(today, schedule, today).cycleEnd;
+  const cycleLen = Math.max(1, daysUntil(cycleStart, cycleEnd));
+  const cycleElapsed = Math.min(cycleLen, Math.max(0, daysUntil(cycleStart, today)));
+  const cyclePct = Math.round((cycleElapsed / cycleLen) * 100);
+
   function shiftMonth(delta: number) {
+    setSlide(delta > 0 ? "left" : "right");
+    window.setTimeout(() => setSlide("none"), 220);
     let month = cursor.month + delta;
     let year = cursor.year;
     while (month < 1) {
@@ -147,31 +142,113 @@ export function CycleCalendar({
     setCursor({ year, month });
   }
 
-  return (
-    <div className="space-y-5">
-      <SpendWindowBanner
-        facts={selectedFacts}
-        openDaysLeft={openDaysLeft}
-        currency={currency}
-      />
+  function onGridKey(e: React.KeyboardEvent) {
+    const map: Record<string, number> = {
+      ArrowRight: 1,
+      ArrowLeft: -1,
+      ArrowDown: 7,
+      ArrowUp: -7,
+    };
+    const step = map[e.key];
+    if (step == null) return;
+    e.preventDefault();
+    const next = addDays(selected, step);
+    setSelected(next);
+    if (next.month !== cursor.month) {
+      setCursor({ year: next.year, month: next.month });
+    }
+  }
 
-      <div className="grid gap-6 lg:grid-cols-[1.45fr_1fr]">
-        <section className="surface overflow-hidden" aria-label="Spend window calendar">
-          <div className="border-b border-divider p-5 pb-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="caption">Spend window</p>
-              <h2 className="mt-1 text-[20px] font-semibold text-ink sm:text-[22px]">
+  return (
+    <div className="space-y-4">
+      {/* Hero: spend window + live stats */}
+      <section
+        className={`rounded-2xl border-2 p-4 sm:p-5 ${VERDICT[todayFacts.verdict].bannerClass}`}
+        aria-live="polite"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider opacity-70">
+              Spend window · today
+            </p>
+            <h2 className="mt-1 text-[20px] font-semibold leading-snug text-ink sm:text-[24px]">
+              {headlineFor(todayFacts, openDaysLeft, currency)}
+            </h2>
+            <p className="mt-1 text-[13px] text-ink-secondary">{cardLabel}</p>
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="caption">Days left</p>
+            <p className="tabular text-[28px] font-semibold leading-none text-ink">
+              {openDaysLeft}
+            </p>
+          </div>
+        </div>
+
+        {/* Cycle progress rail */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-[11px] text-ink-secondary">
+            <span>{formatDateShort(toISODate(cycleStart))}</span>
+            <span className="tabular font-medium text-ink">{cyclePct}%</span>
+            <span>
+              Cutoff {formatDateShort(toISODate(cycleEnd))}
+            </span>
+          </div>
+          <div className="relative mt-1.5 h-2 overflow-hidden rounded-full bg-black/10">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[width] duration-500"
+              style={{ width: `${cyclePct}%` }}
+            />
+            <div
+              className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-ink"
+              style={{ left: `${cyclePct}%` }}
+              aria-hidden="true"
+            />
+          </div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-secondary">
+            <span>
+              Budget{" "}
+              <strong className="font-medium text-ink">
+                {todayFacts.personalLimitRemaining != null
+                  ? formatMoney(todayFacts.personalLimitRemaining, currency)
+                  : "—"}
+              </strong>{" "}
+              left
+            </span>
+            {todayFacts.personalLimitUtilization != null ? (
+              <span>
+                Used{" "}
+                <strong className="font-medium text-ink">
+                  {formatPercent(todayFacts.personalLimitUtilization)}
+                </strong>
+              </span>
+            ) : null}
+            <span>
+              Due{" "}
+              <strong className="font-medium text-ink">
+                {formatDateShort(toISODate(dayCutoffInfo(today, schedule, today).cycleEnd))}
+              </strong>{" "}
+              statement
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,1fr)]">
+        {/* Month grid */}
+        <section className="surface overflow-hidden">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-4 py-3">
+            <div>
+              <p className="caption">Calendar</p>
+              <h3 className="text-[18px] font-semibold text-ink">
                 {monthLabel(cursor.year, cursor.month)}
-              </h2>
-              <p className="mt-0.5 truncate text-[12px] text-ink-secondary">{cardLabel}</p>
+              </h3>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="flex items-center gap-1">
               <Button variant="ghost" size="sm" onClick={() => shiftMonth(-1)} aria-label="Previous month">
                 ←
               </Button>
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={() => {
                   setCursor({ year: today.year, month: today.month });
@@ -184,217 +261,201 @@ export function CycleCalendar({
                 →
               </Button>
             </div>
+          </header>
+
+          <div className="px-3 pb-3 pt-2">
+            <div
+              role="grid"
+              aria-label="Month spend window"
+              tabIndex={0}
+              ref={gridRef}
+              onKeyDown={onGridKey}
+              className={`grid grid-cols-7 gap-1 transition-transform duration-200 ${
+                slide === "left"
+                  ? "-translate-x-1 opacity-60"
+                  : slide === "right"
+                    ? "translate-x-1 opacity-60"
+                    : "translate-x-0 opacity-100"
+              }`}
+            >
+              {WEEKDAYS.map((d) => (
+                <div
+                  key={d}
+                  role="columnheader"
+                  className="pb-1 text-center text-[10px] font-semibold uppercase tracking-wider text-ink-tertiary"
+                >
+                  {d.slice(0, 3)}
+                </div>
+              ))}
+
+              {days.map((day) => {
+                const info = dayCutoffInfo(day, schedule, today);
+                const verdict = spendDayVerdict(
+                  day,
+                  schedule,
+                  today,
+                  transactions,
+                  personalCycleLimit ?? null
+                );
+                const outsideMonth = day.month !== cursor.month;
+                const isSelected = dayEquals(day, selected);
+                const meta = VERDICT[verdict];
+                return (
+                  <button
+                    key={toISODate(day)}
+                    type="button"
+                    role="gridcell"
+                    aria-selected={isSelected}
+                    aria-label={`${toISODate(day)} ${meta.title}${info.isToday ? " today" : ""}${info.isStatementDay ? " statement cutoff" : ""}${info.isDueDay ? " payment due" : ""}`}
+                    onClick={() => setSelected(day)}
+                    className={[
+                      "relative min-h-[52px] rounded-xl border p-1.5 text-left",
+                      "transition-[transform,box-shadow] duration-150 hover:scale-[1.06]",
+                      "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+                      outsideMonth ? "opacity-25" : "",
+                      isSelected
+                        ? "ring-2 ring-accent ring-offset-1 ring-offset-surface"
+                        : "",
+                      meta.cellClass,
+                    ].join(" ")}
+                  >
+                    <span className="flex items-center justify-between">
+                      <span className="text-[13px] font-semibold tabular leading-none">
+                        {day.day}
+                      </span>
+                      {info.isToday ? (
+                        <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                      ) : null}
+                    </span>
+                    <span className="mt-1 flex flex-wrap items-center gap-0.5">
+                      <span className="text-[11px] font-bold leading-none" aria-hidden="true">
+                        {meta.mark}
+                      </span>
+                      {info.isStatementDay ? (
+                        <span className="rounded-full bg-ink px-1 py-0.5 text-[7px] font-bold uppercase leading-none text-bg">
+                          Cut
+                        </span>
+                      ) : null}
+                      {info.isDueDay ? (
+                        <span className="rounded-full bg-status-attention px-1 py-0.5 text-[7px] font-bold uppercase leading-none text-white">
+                          Due
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <ul className="mt-3 flex flex-wrap gap-1.5">
-            {(Object.keys(VERDICT_META) as SpendDayVerdict[]).map((key) => (
+          <ul className="flex flex-wrap gap-1.5 border-t border-divider px-4 py-3">
+            {(Object.keys(VERDICT) as SpendDayVerdict[]).map((key) => (
               <li
                 key={key}
                 className="flex items-center gap-1.5 rounded-full border border-divider px-2 py-1 text-[11px] text-ink-secondary"
               >
                 <span
+                  className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${VERDICT[key].cellClass}`}
                   aria-hidden="true"
-                  className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${VERDICT_META[key].cellClass}`}
                 >
-                  {VERDICT_META[key].mark}
+                  {VERDICT[key].mark}
                 </span>
-                {VERDICT_META[key].legend}
+                {VERDICT[key].short}
               </li>
             ))}
           </ul>
-        </div>
-
-        <div className="p-3 sm:p-4">
-          <div role="grid" aria-label="Month grid" className="grid grid-cols-7 gap-1">
-            {WEEKDAYS.map((d) => (
-              <div
-                key={d}
-                role="columnheader"
-                className="pb-1 text-center text-[10px] font-semibold uppercase tracking-wider text-ink-tertiary"
-              >
-                {d.slice(0, 3)}
-              </div>
-            ))}
-            {days.map((day) => {
-              const info = dayCutoffInfo(day, schedule, today);
-              const verdict = spendDayVerdict(
-                day,
-                schedule,
-                today,
-                transactions,
-                personalCycleLimit ?? null
-              );
-              const outsideMonth = day.month !== cursor.month;
-              const isSelected = dayEquals(day, selected);
-              const meta = VERDICT_META[verdict];
-              return (
-                <button
-                  key={toISODate(day)}
-                  type="button"
-                  role="gridcell"
-                  aria-selected={isSelected}
-                  aria-label={`${toISODate(day)}, ${meta.title}${info.isToday ? ", today" : ""}${info.isStatementDay ? ", statement cutoff" : ""}${info.isDueDay ? ", payment due" : ""}`}
-                  onClick={() => setSelected(day)}
-                  className={[
-                    "relative min-h-[48px] rounded-xl border p-1.5 text-left",
-                    "transition-transform hover:scale-[1.04]",
-                    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-                    outsideMonth ? "opacity-30" : "",
-                    isSelected ? "ring-2 ring-accent ring-offset-1 ring-offset-surface" : "",
-                    meta.cellClass,
-                  ].join(" ")}
-                >
-                  <span className="flex items-center justify-between">
-                    <span className="text-[13px] font-semibold tabular leading-none">
-                      {day.day}
-                    </span>
-                    {info.isToday ? (
-                      <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-                    ) : null}
-                  </span>
-
-                  <span className="mt-1.5 flex flex-wrap items-center gap-1">
-                    <span
-                      aria-hidden="true"
-                      className="text-[11px] font-bold leading-none"
-                      title={meta.title}
-                    >
-                      {meta.mark}
-                    </span>
-                    {info.isStatementDay ? (
-                      <span className="rounded-full bg-ink px-1 py-0.5 text-[8px] font-bold uppercase leading-none text-bg">
-                        Cut
-                      </span>
-                    ) : null}
-                    {info.isDueDay ? (
-                      <span className="rounded-full bg-status-attention px-1 py-0.5 text-[8px] font-bold uppercase leading-none text-white">
-                        Due
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
         </section>
 
-        <DayDetail facts={selectedFacts} currency={currency} />
+        {/* Inspector */}
+        <DayInspector
+          facts={selectedFacts}
+          currency={currency}
+          isToday={dayEquals(selected, today)}
+          onGoToday={() => {
+            setSelected(today);
+            setCursor({ year: today.year, month: today.month });
+          }}
+        />
       </div>
     </div>
   );
 }
 
-function SpendWindowBanner({
+function headlineFor(facts: SpendWindowFacts, openDaysLeft: number, currency: string): string {
+  if (facts.verdict === "limit-reached") return "Personal cycle limit reached";
+  if (facts.verdict === "near-limit") return "Still in cycle — near your limit";
+  if (facts.verdict === "outside-cycle") return "Outside this statement window";
+  if (facts.personalLimitRemaining != null) {
+    return `${formatMoney(facts.personalLimitRemaining, currency)} left · OK window open`;
+  }
+  return openDaysLeft > 0 ? "OK to spend in this cycle" : "Cutoff day";
+}
+
+function DayInspector({
   facts,
-  openDaysLeft,
   currency,
+  isToday,
+  onGoToday,
 }: {
   facts: SpendWindowFacts;
-  openDaysLeft: number;
   currency: string;
+  isToday: boolean;
+  onGoToday: () => void;
 }) {
-  const meta = VERDICT_META[facts.verdict];
-
-  const headline =
-    facts.verdict === "ok"
-      ? "These dates are still OK to spend"
-      : facts.verdict === "near-limit"
-        ? "Still in cycle — near your personal limit"
-        : facts.verdict === "limit-reached"
-          ? "Still in cycle — personal limit reached"
-          : "These dates are outside this cycle";
-
-  const sub =
-    facts.verdict === "outside-cycle"
-      ? "A charge here lands on the next statement, not the one closing soon. You decide if that risk fits your plan."
-      : openDaysLeft > 0
-        ? `${openDaysLeft} day${openDaysLeft === 1 ? "" : "s"} left before the statement cutoff — ${
-            facts.limitReached
-              ? "personal limit is already reached."
-              : facts.personalLimitRemaining != null
-                ? `${formatMoney(facts.personalLimitRemaining, currency)} still left in your personal cycle limit.`
-                : "no personal cycle limit set."
-          }`
-        : "Cutoff window is open until the statement date.";
-
+  const meta = VERDICT[facts.verdict];
   return (
-    <div
-      className={`rounded-2xl border-2 p-5 ${meta.bannerClass}`}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider opacity-75">
-            {formatDateShort(toISODate(facts.day))} · spend window
-          </p>
-          <h3 className="mt-1.5 text-[20px] font-semibold leading-snug text-ink">{headline}</h3>
-          <p className="mt-1.5 text-[14px] text-ink-secondary">{sub}</p>
-          <p className="mt-1 text-[13px] text-ink-tertiary">{facts.cutoffLabel}</p>
+    <aside className={`flex flex-col gap-4 rounded-2xl border-2 p-4 sm:p-5 ${meta.bannerClass}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="caption">Selected day</p>
+          <h3 className="mt-1 text-[22px] font-semibold leading-tight text-ink">
+            {formatDateShort(toISODate(facts.day))}
+          </h3>
         </div>
-        <div className="text-right">
-          <p className="caption">Personal cycle budget</p>
-          <p className="tabular mt-1 text-[22px] font-semibold text-ink">
-            {facts.personalLimitRemaining != null
-              ? formatMoney(facts.personalLimitRemaining, currency)
-              : "—"}
-          </p>
-          <p className="text-[12px] text-ink-secondary">{facts.budgetLabel}</p>
-        </div>
+        {isToday ? (
+          <Button variant="ghost" size="sm" onClick={onGoToday}>
+            Today
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" onClick={onGoToday}>
+            Go to today
+          </Button>
+        )}
       </div>
-    </div>
-  );
-}
 
-function DayDetail({ facts, currency }: { facts: SpendWindowFacts; currency: string }) {
-  const meta = VERDICT_META[facts.verdict];
-  return (
-    <aside className="surface flex flex-col gap-5 p-6" aria-live="polite">
       <div>
-        <p className="caption">Selected day</p>
-        <h2 className="mt-1 text-[24px] font-semibold text-ink">
-          {formatDateShort(toISODate(facts.day))}
-        </h2>
-      </div>
-
-      <div className={`rounded-xl border-2 p-4 ${meta.bannerClass}`}>
-        <p className="text-[11px] font-semibold uppercase tracking-wider opacity-75">
-          Decision view
-        </p>
-        <p className="mt-1.5 text-[18px] font-semibold text-ink">{meta.title}</p>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">
+        <p className="text-[17px] font-semibold text-ink">{meta.title}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">
           {facts.withinCutoff
-            ? "Still inside the current statement cutoff. Spending here stays on the upcoming statement."
-            : "Outside the current cutoff. Spending here moves to the next statement cycle."}
+            ? "A charge on this date lands on the upcoming statement."
+            : facts.zone === "already-on-statement"
+              ? "A charge on this date already belongs to the statement that is closing."
+              : "A charge on this date moves to the next statement cycle."}
         </p>
-        {facts.limitReached ? (
-          <p className="mt-2 text-[13px] font-medium text-ink">
-            Personal cycle limit is already reached — more spending would go past the
-            threshold you set.
-          </p>
-        ) : facts.verdict === "near-limit" ? (
-          <p className="mt-2 text-[13px] font-medium text-ink">
-            You&apos;re close to your personal cycle limit — remaining budget is below 10%.
-          </p>
-        ) : null}
       </div>
 
-      <div>
+      <div className="rounded-xl border border-divider/60 bg-black/5 p-3">
         <p className="caption">Dates</p>
-        <p className="mt-1.5 text-[14px] text-ink">{facts.cutoffLabel}</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-ink">{facts.cutoffLabel}</p>
       </div>
 
       <div>
-        <p className="caption">Personal cycle limit</p>
-        <p className="mt-1.5 text-[15px] font-medium text-ink">{facts.budgetLabel}</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="caption">Personal cycle limit</p>
+          {facts.personalLimitUtilization != null ? (
+            <p className="tabular text-[12px] text-ink-secondary">
+              {formatPercent(facts.personalLimitUtilization)}
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-1 text-[14px] font-medium text-ink">{facts.budgetLabel}</p>
         {facts.personalCycleLimit != null && facts.personalCycleLimit > 0 ? (
           <>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-divider">
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-black/10">
               <div
-                className={`h-full rounded-full ${
+                className={`h-full rounded-full transition-[width] duration-500 ${
                   facts.limitReached
-                    ? "bg-status-complete"
+                    ? "bg-status-attention"
                     : (facts.personalLimitUtilization ?? 0) >= 0.9
                       ? "bg-status-threshold"
                       : "bg-accent"
@@ -402,41 +463,45 @@ function DayDetail({ facts, currency }: { facts: SpendWindowFacts; currency: str
                 style={{ width: `${Math.round((facts.personalLimitUtilization ?? 0) * 100)}%` }}
               />
             </div>
-            <dl className="mt-3 space-y-1.5 text-[13px]">
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-secondary">Spent this cycle</dt>
-                <dd className="tabular text-ink">
+            <dl className="mt-2 grid grid-cols-2 gap-2 text-[12px]">
+              <div>
+                <dt className="text-ink-secondary">Spent</dt>
+                <dd className="tabular font-medium text-ink">
                   {formatMoney(
                     (facts.personalCycleLimit ?? 0) - (facts.personalLimitRemaining ?? 0),
                     currency
                   )}
                 </dd>
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-secondary">Personal cycle limit</dt>
-                <dd className="tabular text-ink">
+              <div>
+                <dt className="text-ink-secondary">Limit</dt>
+                <dd className="tabular font-medium text-ink">
                   {formatMoney(facts.personalCycleLimit, currency)}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-ink-secondary">Utilization</dt>
-                <dd className="tabular text-ink">
-                  {formatPercent(facts.personalLimitUtilization ?? 0)}
                 </dd>
               </div>
             </dl>
           </>
         ) : (
-          <p className="mt-2 text-[13px] text-ink-secondary">
-            Set a Personal Cycle Limit on the card to overlay budget risk on the calendar.
+          <p className="mt-2 text-[12px] text-ink-secondary">
+            Set a Personal Cycle Limit on the card to overlay budget risk here.
           </p>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {facts.isStatementDay ? <Badge tone="upcoming">Statement cutoff</Badge> : null}
-        {facts.isDueDay ? <Badge tone="attention">Payment due</Badge> : null}
-        <Badge tone={meta.chip}>{meta.short}</Badge>
+      <div className="flex flex-wrap gap-1.5">
+        {facts.isStatementDay ? (
+          <span className="rounded-full bg-ink px-2 py-1 text-[11px] font-medium text-bg">
+            Statement cutoff
+          </span>
+        ) : null}
+        {facts.isDueDay ? (
+          <span className="rounded-full bg-status-attention px-2 py-1 text-[11px] font-medium text-white">
+            Payment due
+          </span>
+        ) : null}
+        <span className="rounded-full border border-divider px-2 py-1 text-[11px] font-medium text-ink-secondary">
+          {meta.short}
+        </span>
       </div>
     </aside>
   );

@@ -4,7 +4,7 @@ import * as React from "react";
 import type { CreditCard } from "@/lib/types";
 import { cardIssuers } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/form";
+import { Field, Input, NumberField, Select } from "@/components/ui/form";
 import { Dialog } from "@/components/ui/dialog";
 
 export interface CardFormValues {
@@ -15,6 +15,8 @@ export interface CardFormValues {
   creditLimit: number;
   /** null = no personal cycle limit set */
   personalCycleLimit: number | null;
+  /** Owed from a prior statement (optional) */
+  statementBalance: number | null;
   statementDay: number;
   dueDay: number;
 }
@@ -26,6 +28,7 @@ const emptyValues: CardFormValues = {
   lastFourDigits: "",
   creditLimit: 50_000,
   personalCycleLimit: 20_000,
+  statementBalance: 0,
   statementDay: 5,
   dueDay: 25,
 };
@@ -39,6 +42,7 @@ function toFormValues(card: CreditCard | null): CardFormValues {
     lastFourDigits: card.lastFourDigits,
     creditLimit: card.creditLimit,
     personalCycleLimit: card.personalCycleLimit,
+    statementBalance: card.statementBalance ?? 0,
     statementDay: card.statementDay,
     dueDay: card.dueDay,
   };
@@ -78,6 +82,9 @@ export function CardFormDialog({
     if (values.creditLimit < 0) next.creditLimit = "Must be zero or more.";
     if (values.personalCycleLimit != null && values.personalCycleLimit < 0) {
       next.personalCycleLimit = "Must be zero or more.";
+    }
+    if (values.statementBalance != null && values.statementBalance < 0) {
+      next.statementBalance = "Must be zero or more.";
     }
     if (values.statementDay < 1 || values.statementDay > 31) {
       next.statementDay = "Day must be 1–31.";
@@ -162,15 +169,15 @@ export function CardFormDialog({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid items-end gap-4 sm:grid-cols-2">
           <Field label="Credit limit" htmlFor="card-credit" error={errors.creditLimit}>
-            <Input
+            <NumberField
               id="card-credit"
-              type="number"
+              value={values.creditLimit}
+              onChange={(n) => set("creditLimit", n ?? 0)}
               min={0}
               step={100}
-              value={values.creditLimit}
-              onChange={(e) => set("creditLimit", Number(e.target.value))}
+              showCurrency
             />
           </Field>
           <Field
@@ -179,35 +186,50 @@ export function CardFormDialog({
             hint="Your budget for the cycle."
             error={errors.personalCycleLimit}
           >
-            <Input
+            <NumberField
               id="card-limit"
-              type="number"
+              value={values.personalCycleLimit}
+              onChange={(n) => set("personalCycleLimit", n)}
               min={0}
               step={100}
-              value={values.personalCycleLimit ?? ""}
-              onChange={(e) => {
-                const raw = e.target.value;
-                set("personalCycleLimit", raw === "" ? null : Number(raw));
-              }}
               placeholder="No limit"
+              showCurrency
             />
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <Field
+          label="Outstanding statement balance"
+          htmlFor="card-stmt-balance"
+          hint="What you already owe from a prior statement (or before CardO). Separate from cycle spend."
+          error={errors.statementBalance}
+        >
+          <NumberField
+            id="card-stmt-balance"
+            value={values.statementBalance}
+            onChange={(n) => set("statementBalance", n)}
+            min={0}
+            step={100}
+            placeholder="0"
+            showCurrency
+          />
+        </Field>
+
+        <div className="grid items-end gap-4 sm:grid-cols-2">
           <Field
             label="Statement day"
             htmlFor="card-statement"
             hint="1–31"
             error={errors.statementDay}
           >
-            <Input
+            <NumberField
               id="card-statement"
-              type="number"
+              value={values.statementDay}
+              onChange={(n) => set("statementDay", n ?? 5)}
               min={1}
               max={31}
-              value={values.statementDay}
-              onChange={(e) => set("statementDay", Number(e.target.value))}
+              step={1}
+              inputMode="numeric"
             />
           </Field>
           <Field
@@ -216,13 +238,14 @@ export function CardFormDialog({
             hint="1–31"
             error={errors.dueDay}
           >
-            <Input
+            <NumberField
               id="card-due"
-              type="number"
+              value={values.dueDay}
+              onChange={(n) => set("dueDay", n ?? 25)}
               min={1}
               max={31}
-              value={values.dueDay}
-              onChange={(e) => set("dueDay", Number(e.target.value))}
+              step={1}
+              inputMode="numeric"
             />
           </Field>
         </div>

@@ -1,4 +1,4 @@
-# CardCue Design System
+# CardO Design System
 
 Premium, calm, Apple-inspired financial utility. Confidence through typography, spacing, hierarchy, and subtle motion — not decoration.
 

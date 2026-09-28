@@ -1,6 +1,6 @@
 # Security
 
-CardCue handles personal financial *organization* data. Treat every field as sensitive.
+CardO handles personal financial *organization* data. Treat every field as sensitive.
 
 ## Never store
 

@@ -59,11 +59,30 @@ export const statusMeta: Record<
 export function StatusChip({
   status,
   overrideLabel,
+  onBrand = false,
 }: {
   status: CardStatus;
   overrideLabel?: string;
+  /** Frosted pill for issuer-colored card surfaces */
+  onBrand?: boolean;
 }) {
   const meta = statusMeta[status];
+  if (onBrand) {
+    return (
+      <span
+        className={[
+          "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/25 px-2.5 py-1",
+          "bg-white/15 text-[11px] font-medium tracking-wide text-white",
+          "backdrop-blur-sm",
+        ].join(" ")}
+      >
+        <span aria-hidden="true" className="shrink-0">
+          {meta.icon}
+        </span>
+        {overrideLabel ?? meta.label}
+      </span>
+    );
+  }
   return (
     <Badge tone={meta.tone}>
       <span aria-hidden="true" className="shrink-0">

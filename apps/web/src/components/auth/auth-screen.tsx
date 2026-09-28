@@ -49,11 +49,11 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
       <aside className="auth-brand" aria-hidden="false">
         <Link href="/" className="auth-logo">
           <CardCueMark size={36} />
-          <span className="auth-logo-word">CardCue</span>
+          <span className="auth-logo-word">CardO</span>
         </Link>
 
         <div className="auth-hero">
-          <p className="auth-hero-kicker">Cycle & spending awareness</p>
+          <p className="auth-hero-kicker">Billing Cycles & Spend Limits</p>
           <h1>Know your cycle.</h1>
           <p>
             See what is happening with your cards right now — statement cutoffs,
@@ -108,7 +108,7 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
         </div>
 
         <p className="auth-footnote">
-          CardCue never stores full card numbers, CVVs, or bank credentials.
+          CardO never stores full card numbers, CVVs, or bank credentials.
           Only nicknames, last four digits, limits, and the dates you choose to track.
         </p>
       </aside>
@@ -119,7 +119,7 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
           <Link href="/" className="auth-logo auth-mobile-logo">
             <CardCueMark size={36} />
             <span className="auth-logo-word" style={{ color: "var(--ink)" }}>
-              CardCue
+              CardO
             </span>
           </Link>
 
@@ -250,7 +250,7 @@ export function AuthScreen({ initialMode = "signin" }: { initialMode?: Mode }) {
           </button>
 
           <p className="auth-legal">
-            By continuing, you agree to keep CardCue as an organization tool —
+            By continuing, you agree to keep CardO as an organization tool —
             not financial advice. <Link href="/">Privacy</Link>
           </p>
 

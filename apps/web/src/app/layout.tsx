@@ -13,9 +13,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://cardcue-app.web.app"),
-  title: "CardCue — Cycle & spending awareness",
+  title: "CardO: Billing Cycles & Spend Limits",
   description:
-    "Track Personal Cycle Limits, statement dates, and cycle spending. Calm, premium, precise.",
+    "Track billing cycles, statement cutoffs, and personal spend limits. Calm, precise, premium.",
   icons: {
     icon: [
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
@@ -28,17 +28,17 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "CardCue",
+    title: "CardO: Billing Cycles & Spend Limits",
     description: "Know your cycle. Statement cutoffs, payment dates, personal cycle budget.",
-    images: [{ url: "/og-cardcue.png", width: 1200, height: 630 }],
+    images: [{ url: "/og-cardo.png", width: 1200, height: 630 }],
     type: "website",
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F7F5F2" },
-    { media: "(prefers-color-scheme: dark)", color: "#0F1114" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f7fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b2545" },
   ],
 };
 
@@ -47,7 +47,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
-      <body className="min-h-full overflow-x-hidden">
+      <body className="min-h-full overflow-x-clip">
         <ThemeInit />
         <StoreProvider>
           <AppShell>{children}</AppShell>

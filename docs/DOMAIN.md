@@ -1,4 +1,4 @@
-# CardCue Domain Model
+# CardO Domain Model
 
 ## Entities
 

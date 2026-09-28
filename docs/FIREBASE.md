@@ -1,6 +1,6 @@
 # Firebase Architecture
 
-CardCue uses **Firebase** for auth, database, and web hosting.
+CardO uses **Firebase** for auth, database, and web hosting.
 
 ```
 Web (Next.js on Firebase Hosting)
@@ -21,7 +21,7 @@ iOS (later) can use the same Firestore collections via the Firebase iOS SDK.
 ## Project setup (console — your account)
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. **Add project** → name `CardCue` (disable Analytics if you want a lean setup)
+2. **Add project** → name `CardO` (disable Analytics if you want a lean setup)
 3. **Build → Authentication → Get started**
    - Enable **Email/Password**
    - (Optional) Enable **Google**
@@ -35,7 +35,7 @@ Then on your machine:
 
 ```bash
 firebase login
-firebase use --add   # select CardCue, alias `default`
+firebase use --add   # select CardO, alias `default`
 ```
 
 Copy the web app credentials into `apps/web/.env.local` (never commit):

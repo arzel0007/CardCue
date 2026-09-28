@@ -37,6 +37,14 @@ export interface CreditCard {
   creditLimit: number;
   /** user's cycle budget — NEVER "available credit". null = not set */
   personalCycleLimit: number | null;
+  /**
+   * Amount still owed from a prior statement (or before CardO).
+   * Separate from cycle spending — not "available credit", not budget.
+   * User-managed; reduce when they pay the statement.
+   */
+  statementBalance: number | null;
+  /** When statementBalance was last set (ISO) */
+  statementBalanceUpdatedAt?: string;
   /** 1–31 */
   statementDay: number;
   /** 1–31 */

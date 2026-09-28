@@ -3,8 +3,8 @@ import { AuthScreen } from "@/components/auth/auth-screen";
 import "../auth.css";
 
 export const metadata: Metadata = {
-  title: "Create account — CardCue",
-  description: "Create a CardCue account to track statement cutoffs and cycle spending.",
+  title: "Create account — CardO",
+  description: "Create a CardO account for billing cycles and spend limits.",
 };
 
 export default function SignUpPage() {

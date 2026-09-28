@@ -11,7 +11,7 @@ import {
 } from "./billingCycle";
 import type { BillingCycleSnapshot, CardCycleView, SpendingSnapshot, CardStatus } from "./types";
 
-/** Format money with Intl.NumberFormat. Never hardcode symbol placement. */
+/** Format money with currency symbol, thousands commas, and decimals. */
 export function formatMoney(
   amount: number,
   currency = "PHP",
@@ -21,8 +21,8 @@ export function formatMoney(
     style: "currency",
     currency,
     currencyDisplay: "narrowSymbol",
-    maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -39,6 +39,25 @@ export function formatMoneyCompact(
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(amount);
+}
+
+/** Digits with commas while typing: 12000.5 → "12,000.5" */
+export function formatNumberInput(raw: string): string {
+  const negative = raw.trim().startsWith("-");
+  const cleaned = raw.replace(/[^\d.]/g, "");
+  const parts = cleaned.split(".");
+  const whole = parts[0] ?? "";
+  const decimals = parts.length > 1 ? `.${parts.slice(1).join("").slice(0, 2)}` : "";
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${negative ? "-" : ""}${grouped}${decimals}`;
+}
+
+/** Parse a formatted input back to number | null. */
+export function parseNumberInput(raw: string): number | null {
+  const cleaned = raw.replace(/,/g, "").trim();
+  if (cleaned === "" || cleaned === "-" || cleaned === ".") return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
 }
 
 export function formatPercent(ratio: number, locale = "en-PH"): string {

@@ -38,6 +38,8 @@ service cloud.firestore {
           && request.resource.data.lastFourDigits.matches('^[0-9]{4}$')
           && request.resource.data.creditLimit is number
           && request.resource.data.creditLimit >= 0
+          && (!('statementBalance' in request.resource.data) || request.resource.data.statementBalance is number)
+          && (!('statementBalance' in request.resource.data) || request.resource.data.statementBalance >= 0)
           // JS SDK writes numbers as doubles — use `number`, not `int`
           && request.resource.data.statementDay is number
           && request.resource.data.statementDay >= 1

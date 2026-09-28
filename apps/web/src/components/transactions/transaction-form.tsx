@@ -4,7 +4,7 @@ import * as React from "react";
 import type { CreditCard, Transaction } from "@/lib/types";
 import { transactionCategories } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/form";
+import { Field, Input, NumberField, Select, Textarea } from "@/components/ui/form";
 import { Dialog } from "@/components/ui/dialog";
 
 export interface TransactionFormValues {
@@ -124,14 +124,14 @@ export function TransactionFormDialog({
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Amount" htmlFor="txn-amount" error={errors.amount}>
-            <Input
+            <NumberField
               id="txn-amount"
-              type="number"
+              value={values.amount > 0 ? values.amount : null}
+              onChange={(n) => set("amount", n ?? 0)}
               min={0}
               step={0.01}
-              value={values.amount || ""}
-              onChange={(e) => set("amount", Number(e.target.value))}
-              placeholder="0"
+              placeholder="0.00"
+              showCurrency
             />
           </Field>
           <Field label="Date" htmlFor="txn-date" error={errors.transactionDate}>

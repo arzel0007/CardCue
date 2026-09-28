@@ -1,4 +1,4 @@
-# CardCue MVP Scope
+# CardO MVP Scope
 
 ## In scope (v1)
 
@@ -37,7 +37,7 @@
 
 ## Definition of done
 
-A user opens CardCue and within ~5 seconds knows:
+A user opens CardO and within ~5 seconds knows:
 
 1. Which card needs attention
 2. When the next statement is

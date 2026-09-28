@@ -9,6 +9,8 @@ import {
   type TransactionFormValues,
 } from "@/components/transactions/transaction-form";
 import { TransactionTable } from "@/components/transactions/transaction-table";
+import { StatementImportSheet } from "@/components/transactions/statement-import";
+import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { SectionHeader, Surface } from "@/components/ui/surface";
@@ -31,6 +33,7 @@ export default function TransactionsPage() {
   const [editing, setEditing] = React.useState<Transaction | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [deleteId, setDeleteId] = React.useState<string | null>(null);
+  const [importOpen, setImportOpen] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -69,10 +72,18 @@ export default function TransactionsPage() {
     setEditing(null);
   }
 
+  async function handleImport(txns: Transaction[]) {
+    for (const txn of txns) {
+      await upsertTransaction({ ...txn, userId: user.id });
+    }
+    setImportOpen(false);
+    refresh();
+  }
+
   if (!mounted || isLoading) {
     return (
       <div className="space-y-8">
-        <PageHeader onAdd={() => setFormOpen(true)} />
+        <PageHeader onAdd={() => setFormOpen(true)} onImport={() => setImportOpen(true)} />
         <LoadingState label="Loading transactions…" />
       </div>
     );
@@ -85,6 +96,7 @@ export default function TransactionsPage() {
           setEditing(null);
           setFormOpen(true);
         }}
+        onImport={() => setImportOpen(true)}
       />
 
       {error ? (
@@ -193,22 +205,47 @@ export default function TransactionsPage() {
           </div>
         </div>
       ) : null}
+      <Dialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import statement"
+        description="PDF or photo — review lines before anything is saved."
+      >
+        <StatementImportSheet
+          cards={activeCards}
+          defaultCardId={cardFilter === "all" ? undefined : cardFilter}
+          onImport={handleImport}
+          onClose={() => setImportOpen(false)}
+        />
+      </Dialog>
     </div>
   );
 }
 
-function PageHeader({ onAdd }: { onAdd: () => void }) {
+function PageHeader({
+  onAdd,
+  onImport,
+}: {
+  onAdd: () => void;
+  onImport: () => void;
+}) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[32px] font-semibold leading-tight tracking-tight text-ink">
+    <header className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-ink sm:text-[32px]">
           Transactions
         </h1>
-        <p className="mt-2 max-w-xl text-[15px] text-ink-secondary">
-          User-entered spending. Amounts count toward the current cycle.
+        <p className="mt-1 max-w-xl text-[14px] text-ink-secondary sm:text-[15px]">
+          Spending counts toward the current cycle. Import a statement or add
+          entries manually.
         </p>
       </div>
-      <Button onClick={onAdd}>Add transaction</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={onImport}>
+          Import statement
+        </Button>
+        <Button onClick={onAdd}>Add transaction</Button>
+      </div>
     </header>
   );
 }

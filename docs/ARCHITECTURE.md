@@ -1,4 +1,4 @@
-# CardCue Architecture
+# CardO Architecture
 
 ## Product layering
 
@@ -121,7 +121,7 @@ The dashboard's "due" countdown is the **earliest payment due date on or after t
 
 This is why "Due in 5 days" still appears after the statement closed — the payment is still open.
 
-CardCue does **not** know an issuer's actual posting lag unless a real transaction feed is connected. Manual entries are labeled as user-entered.
+CardO does **not** know an issuer's actual posting lag unless a real transaction feed is connected. Manual entries are labeled as user-entered.
 
 ---
 

@@ -14,9 +14,11 @@
   "dependencies": {
     "firebase": "^12.19.0",
     "next": "^15.5.26",
+    "pdfjs-dist": "^6.3.289",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "recharts": "^3.2.1"
+    "recharts": "^3.2.1",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",

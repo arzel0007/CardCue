@@ -1,48 +1,50 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   CardCue design tokens — mirrors design/tokens/tokens.json
+   CardO design tokens — steel / dodger blue palette
    Premium, calm, Apple-inspired. Hairline borders over shadows.
 --------------------------------------------------------------------------- */
 
 :root {
-  --bg: #f7f5f2;
+  --bg: #f4f7fb;
   --surface: #ffffff;
-  --surface-muted: #efece8;
-  --ink: #1a1a1a;
-  --ink-secondary: #6b6b6b;
-  --ink-tertiary: #9a9a9a;
-  --divider: #e4e0db;
-  --accent: #0e6b63;
-  --accent-soft: #e2f0ee;
-  --status-neutral: #6b7280;
-  --status-upcoming: #2563eb;
-  --status-attention: #b45309;
-  --status-threshold: #c2410c;
-  --status-complete: #047857;
-  --status-critical: #b91c1c;
+  --surface-muted: #e8eef7;
+  --ink: #0f172a;
+  --ink-secondary: #5b6b84;
+  --ink-tertiary: #94a3b8;
+  --divider: #d7e0ed;
+  --accent: #1e90ff;
+  --accent-soft: #e3f2fd;
+  --accent-deep: #1565c0;
+  --status-neutral: #64748b;
+  --status-upcoming: #1565c0;
+  --status-attention: #d97706;
+  --status-threshold: #ea580c;
+  --status-complete: #059669;
+  --status-critical: #dc2626;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --shadow-sheet: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-sheet: 0 8px 24px rgba(21, 101, 192, 0.1);
   color-scheme: light;
 }
 
 /* Explicit theme overrides (Settings → Appearance) */
 :root[data-theme="dark"] {
-  --bg: #0f1114;
-  --surface: #1a1d22;
-  --surface-muted: #24282e;
-  --ink: #f5f5f7;
-  --ink-secondary: #98989d;
-  --ink-tertiary: #6e6e73;
-  --divider: #2c3036;
-  --accent: #3aa398;
-  --accent-soft: #1a3331;
-  --status-neutral: #9ca3af;
-  --status-upcoming: #60a5fa;
-  --status-attention: #f59e0b;
+  --bg: #0b2545;
+  --surface: #132f4c;
+  --surface-muted: #1a3a5c;
+  --ink: #f0f7ff;
+  --ink-secondary: #a8c0e0;
+  --ink-tertiary: #6b87a8;
+  --divider: #234567;
+  --accent: #64b5f6;
+  --accent-soft: #1e3a5f;
+  --accent-deep: #1e90ff;
+  --status-neutral: #94a3b8;
+  --status-upcoming: #64b5f6;
+  --status-attention: #fbbf24;
   --status-threshold: #fb923c;
   --status-complete: #34d399;
   --status-critical: #f87171;
@@ -50,39 +52,41 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f7f5f2;
+  --bg: #f4f7fb;
   --surface: #ffffff;
-  --surface-muted: #efece8;
-  --ink: #1a1a1a;
-  --ink-secondary: #6b6b6b;
-  --ink-tertiary: #9a9a9a;
-  --divider: #e4e0db;
-  --accent: #0e6b63;
-  --accent-soft: #e2f0ee;
-  --status-neutral: #6b7280;
-  --status-upcoming: #2563eb;
-  --status-attention: #b45309;
-  --status-threshold: #c2410c;
-  --status-complete: #047857;
-  --status-critical: #b91c1c;
+  --surface-muted: #e8eef7;
+  --ink: #0f172a;
+  --ink-secondary: #5b6b84;
+  --ink-tertiary: #94a3b8;
+  --divider: #d7e0ed;
+  --accent: #1e90ff;
+  --accent-soft: #e3f2fd;
+  --accent-deep: #1565c0;
+  --status-neutral: #64748b;
+  --status-upcoming: #1565c0;
+  --status-attention: #d97706;
+  --status-threshold: #ea580c;
+  --status-complete: #059669;
+  --status-critical: #dc2626;
   color-scheme: light;
 }
 
-/* System preference only when theme is auto (no data-theme, or data-theme="auto") */
+/* System preference only when theme is auto */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: #0f1114;
-    --surface: #1a1d22;
-    --surface-muted: #24282e;
-    --ink: #f5f5f7;
-    --ink-secondary: #98989d;
-    --ink-tertiary: #6e6e73;
-    --divider: #2c3036;
-    --accent: #3aa398;
-    --accent-soft: #1a3331;
-    --status-neutral: #9ca3af;
-    --status-upcoming: #60a5fa;
-    --status-attention: #f59e0b;
+    --bg: #0b2545;
+    --surface: #132f4c;
+    --surface-muted: #1a3a5c;
+    --ink: #f0f7ff;
+    --ink-secondary: #a8c0e0;
+    --ink-tertiary: #6b87a8;
+    --divider: #234567;
+    --accent: #64b5f6;
+    --accent-soft: #1e3a5f;
+    --accent-deep: #1e90ff;
+    --status-neutral: #94a3b8;
+    --status-upcoming: #64b5f6;
+    --status-attention: #fbbf24;
     --status-threshold: #fb923c;
     --status-complete: #34d399;
     --status-critical: #f87171;
@@ -122,24 +126,21 @@ html {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--ink);
-  /* Kill iOS horizontal overscroll from wide children */
-  overflow-x: hidden;
   max-width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
-  overflow-x: hidden;
   max-width: 100%;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-}
-
-/* Prevent fixed/sticky chrome from creating layout overflow */
-* {
-  max-width: 100%;
+  /* Do NOT put overflow-x:hidden here — it breaks position:fixed on iOS Safari */
 }
 
 img,
@@ -148,6 +149,67 @@ video,
 canvas {
   max-width: 100%;
   height: auto;
+}
+
+button,
+a,
+select,
+input[type="checkbox"],
+input[type="radio"],
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.field,
+.auth-input,
+.auth-submit,
+.auth-secondary {
+  min-height: 44px;
+  font-size: 16px; /* prevents iOS zoom-on-focus */
+}
+
+.scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Fixed mobile chrome needs its own compositing layer on iOS */
+.cardo-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  /* Promote to a GPU layer so Safari keeps it tappable at scroll top */
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  will-change: transform;
+  padding: 0 12px max(12px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .cardo-tabbar {
+    display: none !important;
+  }
+}
+
+.cardo-tabbar-inner {
+  pointer-events: auto;
+  max-width: 28rem;
+  margin: 0 auto;
+  border-radius: 28px;
+  border: 1px solid var(--divider);
+  background: var(--surface);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 8px;
 }
 
 /* Large financial values use tabular numerals */
@@ -249,27 +311,26 @@ select.field {
 
 /* ---------------------------------------------------------------------------
    Spend-window calendar states
-   Three clear colors the user can read without decoding the legend:
-   green = OK to spend · amber = limit risk · hatch = outside cycle
+   Blue = OK to spend · cyan = near limit · amber = limit reached · hatch = outside cycle
 --------------------------------------------------------------------------- */
 
 .spend-ok {
-  border-color: #2e7d32 !important;
-  background-color: #e8f5e9;
-  color: #1b5e20;
+  border-color: #1e90ff !important;
+  background-color: #e3f2fd;
+  color: #0b3d91;
   background-image: none;
 }
 
 .spend-near-limit {
-  border-color: #b45309 !important;
-  background-color: #fff7ed;
-  color: #9a3412;
+  border-color: #0284c7 !important;
+  background-color: #e0f2fe;
+  color: #075985;
   background-image: none;
 }
 
 .spend-limit-reached {
-  border-color: #c2410c !important;
-  background-color: #ffedd5;
+  border-color: #d97706 !important;
+  background-color: #fff7ed;
   color: #9a3412;
   background-image: none;
 }
@@ -287,34 +348,16 @@ select.field {
   );
 }
 
-@media (prefers-color-scheme: dark) {
-  .spend-ok {
-    background-color: #1b3d22;
-    color: #a5d6a7;
-    border-color: #2e7d32 !important;
-  }
 
-  .spend-near-limit {
-    background-color: #3d2a12;
-    color: #fdba74;
-    border-color: #b45309 !important;
-  }
-
-  .spend-limit-reached {
-    background-color: #431407;
-    color: #fdba74;
-    border-color: #c2410c !important;
-  }
-}
 
 .spend-banner-ok {
-  background: #e8f5e9;
-  border-color: #2e7d32;
+  background: #e3f2fd;
+  border-color: #1e90ff;
 }
 
 .spend-banner-risk {
   background: #fff7ed;
-  border-color: #b45309;
+  border-color: #d97706;
 }
 
 .spend-banner-outside {
@@ -322,14 +365,49 @@ select.field {
   border-color: var(--divider);
 }
 
+/* Dark / navy spend-window (data-theme or system auto) */
+:root[data-theme="dark"] .spend-ok,
+:root[data-theme="dark"] .spend-banner-ok {
+  background-color: #1e3a5f;
+  background: #1e3a5f;
+  color: #90caf9;
+  border-color: #1e90ff !important;
+}
+
+:root[data-theme="dark"] .spend-near-limit,
+:root[data-theme="dark"] .spend-banner-risk {
+  background-color: #0c4a6e;
+  background: #0c4a6e;
+  color: #7dd3fc;
+  border-color: #0284c7 !important;
+}
+
+:root[data-theme="dark"] .spend-limit-reached {
+  background-color: #431407;
+  color: #fdba74;
+  border-color: #d97706 !important;
+}
+
 @media (prefers-color-scheme: dark) {
-  .spend-banner-ok {
-    background: #1b3d22;
-    border-color: #2e7d32;
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .spend-ok,
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .spend-banner-ok {
+    background-color: #1e3a5f;
+    background: #1e3a5f;
+    color: #90caf9;
+    border-color: #1e90ff !important;
   }
 
-  .spend-banner-risk {
-    background: #3d2a12;
-    border-color: #b45309;
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .spend-near-limit,
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .spend-banner-risk {
+    background-color: #0c4a6e;
+    background: #0c4a6e;
+    color: #7dd3fc;
+    border-color: #0284c7 !important;
+  }
+
+  :root:not([data-theme="light"]):not([data-theme="dark"]) .spend-limit-reached {
+    background-color: #431407;
+    color: #fdba74;
+    border-color: #d97706 !important;
   }
 }

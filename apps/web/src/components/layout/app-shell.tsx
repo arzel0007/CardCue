@@ -136,7 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const showAuthProgress = mounted && !isAuthReady;
 
   return (
-    <div className="relative min-h-dvh w-full max-w-[100vw] overflow-x-hidden bg-bg">
+    <div className="relative min-h-dvh w-full bg-bg">
       {showAuthProgress ? (
         <div
           role="status"
@@ -159,12 +159,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="flex min-w-0 shrink items-center gap-2 overflow-hidden">
             <CardCueMark size={28} />
             <span className="truncate text-[16px] font-semibold tracking-tight text-ink sm:text-[17px]">
-              CardCue
+              CardO
             </span>
           </Link>
 
           <div className="flex shrink-0 items-center gap-2">
-            <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+            <nav aria-label="Primary" className="hidden items-center gap-1 lg:flex">
               {navItems.map((item) => (
                 <NavLink key={item.href} item={item} pathname={pathname} desktop />
               ))}
@@ -184,18 +184,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main
         id="main"
-        className="mx-auto w-full max-w-6xl overflow-x-hidden px-4 pt-6 pb-28 sm:px-6 sm:pt-8 sm:pb-24"
+        className="mx-auto w-full max-w-6xl px-4 pt-6 pb-32 sm:px-6 sm:pt-8 lg:pb-24"
       >
         {children}
       </main>
 
-      {/* Floating iOS-style tab bar (reference: creator dashboard) */}
-      <nav
-        aria-label="Primary mobile"
-        className="fixed bottom-0 left-0 right-0 z-[60] px-3 pb-[max(10px,env(safe-area-inset-bottom))] md:hidden"
-        style={{ width: "100vw", maxWidth: "100vw" }}
-      >
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-1 rounded-[28px] border border-divider bg-surface px-2 py-2 shadow-[0_8px_28px_rgba(0,0,0,0.18)]">
+      {/* iOS-safe floating tab bar (no 100vw — that breaks fixed at scroll top) */}
+      <nav aria-label="Primary mobile" className="cardo-tabbar lg:hidden">
+        <div className="cardo-tabbar-inner">
           {navItems.map((item) => {
             const active =
               item.href === "/"

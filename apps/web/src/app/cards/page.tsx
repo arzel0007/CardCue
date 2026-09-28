@@ -64,6 +64,7 @@ export default function CardsPage() {
       lastFourDigits: values.lastFourDigits,
       creditLimit: values.creditLimit,
       personalCycleLimit: values.personalCycleLimit,
+      statementBalance: values.statementBalance ?? 0,
       statementDay: values.statementDay,
       dueDay: values.dueDay,
       isArchived: false,
